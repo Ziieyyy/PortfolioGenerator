@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+
+<html class="scroll-smooth" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Alex Chen - Portfolio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#fbf9f2",
+                        "on-secondary-fixed": "#181e01",
+                        "on-secondary-fixed-variant": "#424a25",
+                        "inverse-surface": "#30312c",
+                        "surface-container": "#efeee7",
+                        "outline": "#75786c",
+                        "on-tertiary-fixed": "#1e1c03",
+                        "inverse-primary": "#b7cf95",
+                        "primary-container": "#9ab17a",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#62603e",
+                        "on-primary-fixed-variant": "#394d20",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#102000",
+                        "primary-fixed-dim": "#b7cf95",
+                        "on-secondary-container": "#5e663e",
+                        "background": "#fbf9f2",
+                        "primary-fixed": "#d3ebaf",
+                        "secondary-container": "#dce5b2",
+                        "on-primary-container": "#314418",
+                        "tertiary-fixed": "#e9e4ba",
+                        "error": "#ba1a1a",
+                        "surface-container-highest": "#e4e3dc",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#45483e",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#e9e8e1",
+                        "surface-tint": "#506535",
+                        "on-surface": "#1b1c18",
+                        "tertiary-fixed-dim": "#cdc89f",
+                        "surface-variant": "#e4e3dc",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#1b1c18",
+                        "surface-dim": "#dbdad3",
+                        "secondary-fixed": "#dee7b5",
+                        "surface-container-low": "#f5f4ed",
+                        "surface-bright": "#fbf9f2",
+                        "inverse-on-surface": "#f2f1ea",
+                        "primary": "#506535",
+                        "secondary": "#5a623a",
+                        "tertiary-container": "#afab84",
+                        "on-tertiary-fixed-variant": "#4a4829",
+                        "outline-variant": "#c5c8ba",
+                        "on-tertiary-container": "#423f21",
+                        "secondary-fixed-dim": "#c2cb9a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "24px",
+                        "lg": "24px",
+                        "xl": "24px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "12px",
+                        "stack-md": "24px",
+                        "gutter": "24px",
+                        "margin-mobile": "20px",
+                        "unit": "8px",
+                        "margin-desktop": "64px",
+                        "stack-lg": "48px",
+                        "container-max": "1200px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist"],
+                        "label-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Geist"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Geist"],
+                        "display": ["Geist"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "500" }],
+                        "label-md": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "1.2", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "display": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .fade-in-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .glass-nav {
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            background: rgba(251, 232, 206, 0.7);
+        }
+        .card-shadow {
+            box-shadow: 0 8px 32px rgba(154, 177, 122, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .card-hover {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(154, 177, 122, 0.15);
+        }
+        .blob-shape {
+            border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+            animation: morph 8s ease-in-out infinite;
+        }
+        @keyframes morph {
+            0%, 100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+            34% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; }
+            67% { border-radius: 100% 60% 60% 100% / 100% 100% 60% 60%; }
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</head>
+<body class="bg-[#FBE8CE] text-on-surface font-body-md text-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar -->
+<nav class="glass-nav top-0 sticky flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 z-50 transition-all duration-300">
+<div class="max-w-container-max mx-auto w-full flex justify-between items-center">
+<div class="text-headline-md font-headline-md font-bold text-primary">FolioGo</div>
+<div class="hidden md:flex gap-gutter items-center">
+<a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary transition-colors duration-200" href="#home">Home</a>
+<a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary transition-colors duration-200" href="#about">About</a>
+<a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary transition-colors duration-200" href="#skills">Skills</a>
+<a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary transition-colors duration-200" href="#projects">Projects</a>
+<a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary transition-colors duration-200" href="#experience">Experience</a>
+<a class="text-on-surface-variant font-medium font-label-md text-label-md hover:text-primary transition-colors duration-200" href="#contact">Contact</a>
+</div>
+<div class="flex gap-unit items-center">
+<a class="bg-primary text-on-primary font-label-md text-label-md px-6 py-3 rounded-full font-medium hover:bg-surface-tint transition-colors duration-200 shadow-md hover:shadow-lg" href="#contact">Hire Me</a>
+</div>
+</div>
+</nav>
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-stack-md pb-stack-lg flex flex-col gap-32">
+<!-- Hero Section -->
+<section class="min-h-[80vh] flex flex-col-reverse md:flex-row items-center justify-between gap-gutter fade-in-up pt-12" id="home">
+<div class="flex-1 flex flex-col items-start z-10">
+<div class="inline-flex items-center gap-2 px-4 py-2 bg-white/50 backdrop-blur-sm rounded-full border border-white/60 mb-6 shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wide uppercase">Available for work</span>
+</div>
+<h1 class="font-display text-5xl md:text-7xl text-on-surface mb-4 font-bold tracking-tight">Hi, I'm Alex Chen.</h1>
+<h2 class="text-3xl md:text-4xl text-primary font-headline-md mb-6">Strategic Brand Designer</h2>
+<p class="font-body-lg text-xl text-on-surface-variant max-w-xl mb-10 leading-relaxed">
+                Crafting thoughtful experiences and meaningful solutions. I specialize in delivering impactful results through research, strategy, and execution.
+            </p>
+<div class="flex flex-wrap gap-4">
+<a class="inline-flex items-center justify-center gap-2 bg-primary text-on-primary font-label-md text-label-md px-8 py-4 rounded-full font-medium hover:bg-surface-tint transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1" href="#projects">
+                    View Work
+                </a>
+<a class="inline-flex items-center justify-center gap-2 bg-white text-on-surface font-label-md text-label-md px-8 py-4 rounded-full font-medium hover:bg-surface-container-low transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-1" href="#contact">
+                    Contact Me
+                </a>
+<a class="inline-flex items-center justify-center w-14 h-14 bg-white text-on-surface rounded-full font-medium hover:bg-surface-container-low transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-1" href="#">
+<span class="material-symbols-outlined text-[24px]">arrow_downward</span>
+</a>
+</div>
+</div>
+<div class="flex-1 relative flex justify-center items-center w-full h-[500px]">
+<div class="absolute inset-0 bg-gradient-to-tr from-[#9AB17A]/20 to-transparent rounded-full blur-3xl opacity-60"></div>
+<div class="relative w-full max-w-[500px] aspect-square blob-shape overflow-hidden shadow-2xl border-4 border-white/40">
+<img alt="Alex Chen Profile" class="w-full h-full object-cover scale-105" src="https://lh3.googleusercontent.com/aida/AP1WRLsY6wHYZLzdYul-fCZufZ5OmvB0VlRtEdB4F627LC1BcN5dfI8IrR5TYOzXuXsl0ZSk9vBlMRU3e4X8pDJoPUL6vZ3d99kwPWZqUTndJgg3oRk1qGsq8j9wtIuiH0tCe8rvE-YA2otgzM9MZQrRPKtz30cQE14eago7yZQhRmMn9XIkYCDE7KvUNq0aBQjRB-s0agL3ePJMNN-mIAaTYbZ6AuFIuODpIQbbW47u_7cr2xz7cVtmQA3E-vE"/>
+</div>
+<!-- Decorative floating elements -->
+<div class="absolute top-10 right-10 w-16 h-16 bg-white/40 backdrop-blur-md rounded-full shadow-lg animate-bounce" style="animation-duration: 3s;"></div>
+<div class="absolute bottom-20 left-10 w-24 h-24 bg-[#9AB17A]/30 backdrop-blur-md rounded-full shadow-lg animate-bounce" style="animation-duration: 4s; animation-delay: 1s;"></div>
+</div>
+</section>
+<!-- Portfolio Statistics -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-6 fade-in-up -mt-12 z-20 relative">
+<div class="glass-card rounded-3xl p-6 text-center card-hover flex flex-col items-center justify-center">
+<h3 class="text-4xl font-display font-bold text-primary mb-2">12+</h3>
+<p class="font-label-md text-on-surface-variant font-medium">Projects Completed</p>
+</div>
+<div class="glass-card rounded-3xl p-6 text-center card-hover flex flex-col items-center justify-center">
+<h3 class="text-4xl font-display font-bold text-primary mb-2">2</h3>
+<p class="font-label-md text-on-surface-variant font-medium">Internships</p>
+</div>
+<div class="glass-card rounded-3xl p-6 text-center card-hover flex flex-col items-center justify-center">
+<h3 class="text-4xl font-display font-bold text-primary mb-2">15+</h3>
+<p class="font-label-md text-on-surface-variant font-medium">Methodologies</p>
+</div>
+<div class="glass-card rounded-3xl p-6 text-center card-hover flex flex-col items-center justify-center">
+<h3 class="text-4xl font-display font-bold text-primary mb-2">5</h3>
+<p class="font-label-md text-on-surface-variant font-medium">Certifications</p>
+</div>
+</section>
+<!-- About & Skills -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-16" id="about">
+<section class="fade-in-up flex flex-col justify-center">
+<span class="text-primary font-label-md font-semibold tracking-wider uppercase mb-2">Discover</span>
+<h2 class="font-headline-lg text-4xl md:text-5xl text-on-surface mb-8">About Me</h2>
+<div class="prose prose-lg text-on-surface-variant">
+<p class="mb-6">
+                        I'm a senior student passionate about solving complex problems through research and creativity. My journey began with an interest in understanding human behavior and has evolved into creating strategic, evidence-based solutions.
+                    </p>
+<p>
+                        When I'm not engaged in my work, I'm usually organizing community events, volunteering, or exploring the local coffee shop scene. I'm actively seeking opportunities where I can tackle challenging problems and collaborate with experienced professionals.
+                    </p>
+</div>
+</section>
+<section class="fade-in-up" id="skills">
+<div class="bg-white/60 backdrop-blur-lg rounded-[32px] p-8 md:p-10 card-shadow">
+<h3 class="font-headline-md text-2xl mb-8 text-on-surface">Expertise &amp; Skills</h3>
+<div class="space-y-6">
+<!-- Skill Category 1 -->
+<div>
+<div class="flex justify-between items-center mb-2">
+<span class="font-medium text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">lightbulb</span> Strategy &amp; Planning</span>
+<span class="text-sm text-on-surface-variant">90%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[90%] transition-all duration-1000 ease-out"></div>
+</div>
+<div class="flex flex-wrap gap-2 mt-3">
+<span class="px-3 py-1 bg-white text-xs font-medium rounded-full shadow-sm">Project Management</span>
+<span class="px-3 py-1 bg-white text-xs font-medium rounded-full shadow-sm">Market Analysis</span>
+<span class="px-3 py-1 bg-white text-xs font-medium rounded-full shadow-sm">Strategic Planning</span>
+</div>
+</div>
+<!-- Skill Category 2 -->
+<div>
+<div class="flex justify-between items-center mb-2">
+<span class="font-medium text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">search</span> Research &amp; Analysis</span>
+<span class="text-sm text-on-surface-variant">85%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[85%] transition-all duration-1000 ease-out"></div>
+</div>
+<div class="flex flex-wrap gap-2 mt-3">
+<span class="px-3 py-1 bg-white text-xs font-medium rounded-full shadow-sm">Data Collection</span>
+<span class="px-3 py-1 bg-white text-xs font-medium rounded-full shadow-sm">Qualitative Research</span>
+<span class="px-3 py-1 bg-white text-xs font-medium rounded-full shadow-sm">Reporting</span>
+</div>
+</div>
+<!-- Skill Category 3 -->
+<div>
+<div class="flex justify-between items-center mb-2">
+<span class="font-medium text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">design_services</span> Design &amp; Execution</span>
+<span class="text-sm text-on-surface-variant">75%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[75%] transition-all duration-1000 ease-out"></div>
+</div>
+<div class="flex flex-wrap gap-2 mt-3">
+<span class="px-3 py-1 bg-white text-xs font-medium rounded-full shadow-sm">Visual Communication</span>
+<span class="px-3 py-1 bg-white text-xs font-medium rounded-full shadow-sm">Prototyping</span>
+<span class="px-3 py-1 bg-white text-xs font-medium rounded-full shadow-sm">Presentation</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Featured Projects -->
+<section class="fade-in-up" id="projects">
+<div class="text-center mb-12">
+<span class="text-primary font-label-md font-semibold tracking-wider uppercase mb-2 block">Portfolio</span>
+<h2 class="font-headline-lg text-4xl md:text-5xl text-on-surface">Portfolio Highlights</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+<!-- Project Card 1 -->
+<div class="bg-white rounded-[32px] overflow-hidden card-shadow card-hover flex flex-col group">
+<div class="h-64 relative overflow-hidden bg-surface-container">
+<img alt="DataFlow Analytics" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/AP1WRLvRCRveV2XfJOUJBtamfojc4Eu7EDKpmAyNGCSpIRP5ah39F2dXMwdJsZAbR7Qsl-_HqEg1pOrFRiix1G6T7NIA4GlC0lKM29d8oVIASsvVceGtLZQ7MMm7duxntVtf6pwPmWh-mxKgQk7AhPVGKghCsaoC6Cp0_Auq6aehMvnWbuofJZj3_Fps950m037zReFYoMzKmHqpk-KMvLtBez6rS4WK5Wu_3ymTTk_8uIDMZ148bvb6b3bbr6rF"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
+<div class="flex gap-3 w-full">
+<a class="flex-1 bg-white/90 backdrop-blur text-center py-2 rounded-full font-medium text-sm hover:bg-primary hover:text-white transition-colors" href="#">View Project</a>
+<a class="flex-1 bg-white/90 backdrop-blur text-center py-2 rounded-full font-medium text-sm hover:bg-primary hover:text-white transition-colors" href="#">Case Study</a>
+</div>
+</div>
+</div>
+<div class="p-8 flex flex-col flex-1">
+<h3 class="font-headline-md text-2xl text-on-surface mb-3 group-hover:text-primary transition-colors">Market Expansion Strategy</h3>
+<p class="font-body-md text-on-surface-variant mb-6 flex-1">
+                            A comprehensive research and strategy project analyzing new market opportunities. Delivered actionable insights and a phased execution plan.
+                        </p>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1.5 bg-surface text-xs font-medium rounded-lg text-on-surface-variant border border-outline-variant/30">Research</span>
+<span class="px-3 py-1.5 bg-surface text-xs font-medium rounded-lg text-on-surface-variant border border-outline-variant/30">Strategy</span>
+<span class="px-3 py-1.5 bg-surface text-xs font-medium rounded-lg text-on-surface-variant border border-outline-variant/30">Analysis</span>
+</div>
+</div>
+</div>
+<!-- Project Card 2 -->
+<div class="bg-white rounded-[32px] overflow-hidden card-shadow card-hover flex flex-col group">
+<div class="h-64 relative overflow-hidden bg-surface-container">
+<img alt="CloudSync CLI" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/AP1WRLsLPKpCeIbyXp1Q6Kv7W6TtiCKQR7W6HF9_ZNaydafYzjhiJixpYOHmDsPxgxFPYtwMvvnUnQ-Z06iEsl409rfcOyLazTlHD0A6yFkGqoW69YHVL80MA8X9Snuu9YhZHfmiaV8lqJJ_CtI1bYDnstUjBNIl9oMeKivQZbaqGETvhLbJbd18f4sg18U9jxTk1pmyjAPnLSX4-lNV6-exQmF2NHStW2xIgAnLyTEVurZqtBW36MUaNULtK30"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
+<div class="flex gap-3 w-full">
+<a class="flex-1 bg-white/90 backdrop-blur text-center py-2 rounded-full font-medium text-sm hover:bg-primary hover:text-white transition-colors" href="#">View Project</a>
+<a class="flex-1 bg-white/90 backdrop-blur text-center py-2 rounded-full font-medium text-sm hover:bg-primary hover:text-white transition-colors" href="#">Case Study</a>
+</div>
+</div>
+</div>
+<div class="p-8 flex flex-col flex-1">
+<h3 class="font-headline-md text-2xl text-on-surface mb-3 group-hover:text-primary transition-colors">Brand Identity Refresh</h3>
+<p class="font-body-md text-on-surface-variant mb-6 flex-1">
+                            A holistic redesign of a legacy brand, including updated visual guidelines, communication strategy, and asset creation.
+                        </p>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1.5 bg-surface text-xs font-medium rounded-lg text-on-surface-variant border border-outline-variant/30">Design</span>
+<span class="px-3 py-1.5 bg-surface text-xs font-medium rounded-lg text-on-surface-variant border border-outline-variant/30">Branding</span>
+<span class="px-3 py-1.5 bg-surface text-xs font-medium rounded-lg text-on-surface-variant border border-outline-variant/30">Creative Direction</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Experience & Education -->
+<section class="fade-in-up" id="experience">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+<!-- Experience Timeline -->
+<div>
+<span class="text-primary font-label-md font-semibold tracking-wider uppercase mb-2 block">Career</span>
+<h2 class="font-headline-lg text-4xl mb-10 text-on-surface">Experience</h2>
+<div class="relative border-l-2 border-primary/30 ml-4 space-y-12 pb-4">
+<!-- Timeline Item 1 -->
+<div class="relative pl-8 card-hover">
+<div class="absolute w-6 h-6 bg-primary rounded-full -left-[13px] top-0 border-4 border-[#FBE8CE] shadow-sm"></div>
+<div class="bg-white/80 backdrop-blur-sm rounded-[24px] p-6 card-shadow border border-white">
+<div class="flex flex-col md:flex-row md:justify-between md:items-start mb-2">
+<h3 class="font-headline-md text-xl text-on-surface font-bold">Project Lead / Associate</h3>
+<span class="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full mt-2 md:mt-0">Summer 2024</span>
+</div>
+<h4 class="text-on-surface-variant font-medium mb-4">Global Innovations Inc.</h4>
+<p class="font-body-md text-on-surface-variant text-sm">
+                                Led cross-functional initiatives to streamline operational workflows. Improved process efficiency by 15% through data-driven recommendations and strategic implementation.
+                            </p>
+</div>
+</div>
+<!-- Add more timeline items here if needed -->
+</div>
+</div>
+<!-- Education Cards -->
+<div>
+<span class="text-primary font-label-md font-semibold tracking-wider uppercase mb-2 block">Academic</span>
+<h2 class="font-headline-lg text-4xl mb-10 text-on-surface">Education</h2>
+<div class="space-y-6">
+<div class="bg-white rounded-[24px] p-8 card-shadow card-hover border border-white flex items-start gap-6">
+<div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-3xl">school</span>
+</div>
+<div>
+<h3 class="font-headline-md text-xl text-on-surface font-bold mb-1">Bachelor of Arts</h3>
+<p class="text-on-surface-variant font-medium mb-2">State University</p>
+<div class="flex items-center gap-4 text-sm text-on-surface-variant mb-3">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">calendar_today</span> Expected 2026</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">grade</span> GPA: 3.8/4.0</span>
+</div>
+<p class="font-body-md text-sm text-on-surface-variant">
+                                Relevant Coursework: Strategic Communication, Data Analysis, Project Management, Design Thinking.
+                            </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Contact CTA Section -->
+<section class="fade-in-up mt-12" id="contact">
+<div class="bg-primary rounded-[40px] p-12 md:p-20 text-center relative overflow-hidden card-shadow">
+<div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+')] opacity-30"></div>
+<div class="relative z-10 max-w-2xl mx-auto">
+<h2 class="font-display text-4xl md:text-6xl text-white mb-6">Interested in working together?</h2>
+<p class="text-white/80 text-lg md:text-xl mb-10">Let's connect and discuss how I can help bring your ideas to life.</p>
+<div class="flex flex-wrap justify-center gap-4">
+<a class="inline-flex items-center justify-center gap-2 bg-white text-primary font-label-md px-8 py-4 rounded-full font-bold hover:bg-surface-container-lowest transition-all duration-300 shadow-lg hover:-translate-y-1" href="mailto:hello@example.com">
+<span class="material-symbols-outlined">mail</span> Send an Email
+                        </a>
+<a class="inline-flex items-center justify-center gap-2 bg-primary-container/20 text-white border border-white/30 font-label-md px-8 py-4 rounded-full font-bold hover:bg-white/10 transition-all duration-300 backdrop-blur-sm" href="#">
+                        LinkedIn Profile
+                    </a>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 px-margin-mobile md:px-margin-desktop mt-20 border-t border-primary/10">
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="text-headline-md font-bold text-primary">FolioGo</span>
+<span class="text-sm text-on-surface-variant ml-4">© 2024 FolioGo. All rights reserved.</span>
+</div>
+<div class="flex gap-6">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">share</span></a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">language</span></a>
+</div>
+</div>
+</footer>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.fade-in-up').forEach((el) => {
+                observer.observe(el);
+            });
+            
+            // Smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+    </script>
+</body></html>
