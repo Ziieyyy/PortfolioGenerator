@@ -2010,20 +2010,8 @@ export default function App() {
         return
       }
     }
-
     try {
       const bucketName = (type === 'avatar' || type === 'project') ? 'public-portfolio' : 'private-portfolio';
-      
-      // Auto-create bucket if missing (fails safely if bucket already exists or lack permissions)
-      try {
-        await supabase.storage.createBucket(bucketName, {
-          public: bucketName === 'public-portfolio',
-          fileSizeLimit: 5 * 1024 * 1024
-        });
-      } catch (e) {
-        // Ignore bucket creation issues
-      }
-
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${type}_${Date.now()}.${fileExt}`;
 
