@@ -331,6 +331,59 @@ const SocialIcon = ({ type, size = 18 }: { type: string; size?: number }) => {
   return <Globe size={size} />;
 };
 
+const formatExternalUrl = (url: string) => {
+  if (!url) return '';
+  const clean = url.trim();
+  if (/^https?:\/\//i.test(clean)) return clean;
+  if (/^mailto:/i.test(clean)) return clean;
+  if (/^tel:/i.test(clean)) return clean;
+  return `https://${clean}`;
+};
+
+const calculateDurationString = (startStr: string, endStr: string) => {
+  const parseDate = (str: string) => {
+    if (!str) return null;
+    const cleanStr = str.trim().toLowerCase();
+    if (cleanStr.includes('present') || cleanStr.includes('current') || cleanStr.includes('now')) {
+      return new Date();
+    }
+    const parts = cleanStr.split(/\s+/);
+    if (parts.length === 1) {
+      const yr = parseInt(parts[0]);
+      if (isNaN(yr)) return null;
+      return new Date(yr, 0, 1);
+    }
+    const monthStr = parts[0];
+    const yearStr = parts[1];
+    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    let monthIdx = months.findIndex(m => monthStr.startsWith(m));
+    if (monthIdx === -1) {
+      monthIdx = parseInt(monthStr) - 1;
+    }
+    const yearVal = parseInt(yearStr);
+    if (monthIdx === -1 || isNaN(yearVal)) return null;
+    return new Date(yearVal, monthIdx, 1);
+  };
+
+  const start = parseDate(startStr);
+  const end = parseDate(endStr);
+  if (!start || !end) return '';
+
+  let diffMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  if (diffMonths < 0) diffMonths = 0;
+  
+  // Include start month in calculations (e.g. Jan 2024 to Jan 2024 is 1 month)
+  diffMonths += 1;
+
+  const yrs = Math.floor(diffMonths / 12);
+  const mos = diffMonths % 12;
+
+  const yrPart = yrs > 0 ? `${yrs} yr${yrs > 1 ? 's' : ''}` : '';
+  const moPart = mos > 0 ? `${mos} mo${mos > 1 ? 's' : ''}` : '';
+  
+  return [yrPart, moPart].filter(Boolean).join(' ') || '1 mo';
+};
+
 interface PortfolioRendererProps {
   portfolioData: PortfolioData;
   activeTheme: string;
@@ -346,13 +399,13 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
       { name: 'email', value: contact.email, label: 'Email', prefix: 'mailto:' },
       { name: 'phone', value: contact.phone, label: 'Phone', prefix: 'tel:' },
       { name: 'website', value: contact.website, label: 'Website', prefix: '' },
-      { name: 'linkedin', value: contact.linkedin, label: 'LinkedIn', prefix: 'https://' },
-      { name: 'github', value: contact.github, label: 'GitHub', prefix: 'https://' },
-      { name: 'behance', value: contact.behance, label: 'Behance', prefix: 'https://' },
-      { name: 'dribbble', value: contact.dribbble, label: 'Dribbble', prefix: 'https://' },
-      { name: 'instagram', value: contact.instagram, label: 'Instagram', prefix: 'https://' },
-      { name: 'x', value: contact.x, label: 'X', prefix: 'https://' },
-      { name: 'facebook', value: contact.facebook, label: 'Facebook', prefix: 'https://' }
+      { name: 'linkedin', value: contact.linkedin, label: 'LinkedIn', prefix: '' },
+      { name: 'github', value: contact.github, label: 'GitHub', prefix: '' },
+      { name: 'behance', value: contact.behance, label: 'Behance', prefix: '' },
+      { name: 'dribbble', value: contact.dribbble, label: 'Dribbble', prefix: '' },
+      { name: 'instagram', value: contact.instagram, label: 'Instagram', prefix: '' },
+      { name: 'x', value: contact.x, label: 'X', prefix: '' },
+      { name: 'facebook', value: contact.facebook, label: 'Facebook', prefix: '' }
     ];
 
     const activeLinks = links.filter(l => l.value && l.value.trim() !== '');
@@ -362,8 +415,12 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', ...inlineStyle }}>
         {activeLinks.map(l => {
           let href = l.value!;
-          if (l.name !== 'email' && l.name !== 'phone' && l.name !== 'website' && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
-            href = l.prefix + href;
+          if (l.name === 'email' && !href.startsWith('mailto:')) {
+            href = 'mailto:' + href;
+          } else if (l.name === 'phone' && !href.startsWith('tel:')) {
+            href = 'tel:' + href;
+          } else {
+            href = formatExternalUrl(href);
           }
           return (
             <a 
@@ -443,7 +500,11 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
                 {exp.role} <span style={{ fontWeight: 400, color: '#888', fontSize: '0.9rem' }}>at {exp.company}</span>
               </h4>
               <span style={{ fontSize: '0.8rem', color: '#888' }}>
-                {exp.duration}
+                {(() => {
+                  const parts = exp.duration.split('-');
+                  const durStr = parts.length === 2 ? calculateDurationString(parts[0], parts[1]) : '';
+                  return durStr ? `${exp.duration} (${durStr})` : exp.duration;
+                })()}
               </span>
             </div>
             <p style={{ fontSize: '0.88rem', marginTop: '6px', color: themeType === 'modern' ? '#9CA3AF' : '#555', lineHeight: '1.5' }}>
@@ -509,306 +570,209 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
     );
   };
 
-  // 1. MINIMAL THEME
-  if (activeTheme === 'minimal') {
-    return (
-      <div className="theme-preview-minimal" style={{ padding: isPreviewMode ? '20px 12px' : '40px 24px', background: '#FFF' }}>
-        <div className="theme-hero" style={{ 
-          padding: '40px 0', 
-          borderBottom: '1px solid #ECECEC', 
-          display: 'flex', 
-          flexDirection: portfolioData.avatarUrl ? 'row' : 'column',
-          alignItems: 'center', 
-          gap: '32px',
-          justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center',
-          textAlign: portfolioData.avatarUrl ? 'left' : 'center'
-        }}>
-          {portfolioData.avatarUrl && (
-            <div style={{ flexShrink: 0 }}>
-              <img 
-                src={portfolioData.avatarUrl} 
-                alt={portfolioData.name} 
-                style={{ 
-                  width: '130px', 
-                  height: '130px', 
-                  borderRadius: '16px', 
-                  objectFit: 'cover',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-                }} 
-              />
-            </div>
-          )}
-          <div style={{ flex: 1, maxWidth: '650px' }}>
-            <h1 style={{ fontWeight: 700, fontSize: '2.4rem', color: '#111', lineHeight: '1.15' }}>
-              {portfolioData.name || 'Your Name'}
-            </h1>
-            {portfolioData.title && (
-              <p style={{ fontSize: '1.15rem', color: '#555', marginTop: '8px', fontWeight: 500 }}>
-                {portfolioData.title}
-              </p>
-            )}
-            
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center', fontSize: '0.85rem', color: '#777', marginTop: '12px' }}>
-              {portfolioData.location && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <MapPin size={12} /> {portfolioData.location}
-                </span>
-              )}
-              {portfolioData.location && portfolioData.university && <span>•</span>}
-              {portfolioData.university && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <BookOpen size={12} /> {portfolioData.university}
-                </span>
-              )}
-            </div>
-            {renderSocials(portfolioData.contact, '', { marginTop: '20px', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center' })}
+  // 1. MINIMAL THEME CONTENT
+  const renderMinimal = () => (
+    <div className="theme-preview-minimal" style={{ padding: isPreviewMode ? '20px 12px' : '40px 24px', background: '#FFF' }}>
+      <div className="theme-hero" style={{ 
+        padding: '40px 0', 
+        borderBottom: '1px solid #ECECEC', 
+        display: 'flex', 
+        flexDirection: portfolioData.avatarUrl ? 'row' : 'column',
+        alignItems: 'center', 
+        gap: '32px',
+        justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center',
+        textAlign: portfolioData.avatarUrl ? 'left' : 'center'
+      }}>
+        {portfolioData.avatarUrl && (
+          <div style={{ flexShrink: 0 }}>
+            <img 
+              src={portfolioData.avatarUrl} 
+              alt={portfolioData.name} 
+              style={{ 
+                width: '130px', 
+                height: '130px', 
+                borderRadius: '16px', 
+                objectFit: 'cover',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+              }} 
+            />
           </div>
-        </div>
-
-        {renderStats('minimal')}
-
-        {portfolioData.bio && (
-          <div style={{ margin: '40px 0' }}>
-            <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '14px' }}>
-              About
-            </div>
-            <p style={{ fontSize: '1rem', color: '#333', lineHeight: '1.7', whiteSpace: 'pre-line' }}>
-              {portfolioData.bio}
+        )}
+        <div style={{ flex: 1, maxWidth: '650px' }}>
+          <h1 style={{ fontWeight: 700, fontSize: '2.4rem', color: '#111', lineHeight: '1.15' }}>
+            {portfolioData.name || 'Your Name'}
+          </h1>
+          {portfolioData.title && (
+            <p style={{ fontSize: '1.15rem', color: '#555', marginTop: '8px', fontWeight: 500 }}>
+              {portfolioData.title}
             </p>
+          )}
+          
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center', fontSize: '0.85rem', color: '#777', marginTop: '12px' }}>
+            {portfolioData.location && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <MapPin size={12} /> {portfolioData.location}
+              </span>
+            )}
+            {portfolioData.location && portfolioData.university && <span>•</span>}
+            {portfolioData.university && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <BookOpen size={12} /> {portfolioData.university}
+              </span>
+            )}
           </div>
-        )}
-
-        {portfolioData.skills && portfolioData.skills.length > 0 && (
-          <div style={{ margin: '40px 0' }}>
-            <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '14px' }}>
-              {indConfig.skillsTitle}
-            </div>
-            {renderSkills(portfolioData.skills, 'minimal')}
-          </div>
-        )}
-
-        {portfolioData.projects && portfolioData.projects.length > 0 && (
-          <div style={{ margin: '40px 0' }}>
-            <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '20px' }}>
-              {indConfig.projectsTitle}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {portfolioData.projects.map((proj) => (
-                <div key={proj.id} style={{ borderBottom: '1px solid #F0F0F0', paddingBottom: '24px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#1A1A1A' }}>{proj.name}</h3>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      {proj.githubUrl && <a href={proj.githubUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#555', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}><Github size={14} /> Code</a>}
-                      {proj.liveUrl && <a href={proj.liveUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#555', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}><ExternalLink size={14} /> Demo</a>}
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '0.92rem', color: '#555', margin: '8px 0 12px 0', lineHeight: 1.6 }}>{proj.description}</p>
-                  {proj.technologies && (
-                    <div style={{ fontSize: '0.78rem', color: '#888', fontWeight: 500 }}>
-                      Built with: <span style={{ color: '#444' }}>{proj.technologies}</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {portfolioData.experience && portfolioData.experience.length > 0 && (
-          <div style={{ margin: '40px 0' }}>
-            <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '20px' }}>
-              {indConfig.experienceTitle}
-            </div>
-            {renderExperienceList(portfolioData.experience, 'minimal')}
-          </div>
-        )}
-
-        {portfolioData.education && portfolioData.education.length > 0 && (
-          <div style={{ margin: '40px 0' }}>
-            <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '20px' }}>
-              {indConfig.educationTitle}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {portfolioData.education.map(edu => (
-                <div key={edu.id}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 600 }}>{edu.degree}</h4>
-                    <span style={{ fontSize: '0.85rem', color: '#777' }}>{edu.duration}</span>
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: '#555', margin: '4px 0' }}>{edu.institution}</div>
-                  {edu.description && <p style={{ fontSize: '0.85rem', color: '#666', lineHeight: 1.5 }}>{edu.description}</p>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {portfolioData.certifications && portfolioData.certifications.length > 0 && (
-          <div style={{ margin: '40px 0' }}>
-            <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '20px' }}>
-              Certifications
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-              {portfolioData.certifications.map(cert => (
-                <div key={cert.id} style={{ border: '1px solid #ECECEC', padding: '16px', borderRadius: '8px' }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600 }}>{cert.name}</h4>
-                  <div style={{ fontSize: '0.82rem', color: '#666', marginTop: '4px' }}>{cert.issuer}</div>
-                  <div style={{ fontSize: '0.78rem', color: '#999', marginTop: '2px' }}>Issued: {cert.date}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+          {renderSocials(portfolioData.contact, '', { marginTop: '20px', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center' })}
+        </div>
       </div>
-    );
-  }
 
-  // 2. PROFESSIONAL THEME
-  if (activeTheme === 'professional') {
-    return (
-      <div className="theme-preview-professional" style={{ padding: isPreviewMode ? '24px 16px' : '48px 32px', background: '#F7FAFC' }}>
-        <div style={{ maxWidth: '960px', margin: '0 auto', background: '#FFF', border: '1px solid #E2E8F0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-          <div style={{ background: '#1A365D', color: '#FFF', padding: '40px', display: 'flex', flexDirection: portfolioData.avatarUrl ? 'row' : 'column', alignItems: 'center', gap: '32px' }}>
-            {portfolioData.avatarUrl && (
-              <img 
-                src={portfolioData.avatarUrl} 
-                alt={portfolioData.name} 
-                style={{ width: '120px', height: '120px', borderRadius: '50%', border: '4px solid rgba(255,255,255,0.2)', objectFit: 'cover' }} 
-              />
-            )}
-            <div style={{ textAlign: portfolioData.avatarUrl ? 'left' : 'center', flex: 1 }}>
-              <h1 style={{ color: '#FFF', fontSize: '2.5rem', fontWeight: 800, margin: 0 }}>{portfolioData.name || 'Your Name'}</h1>
-              <p style={{ color: '#90CDF4', fontSize: '1.2rem', margin: '8px 0 0 0', fontWeight: 500 }}>{portfolioData.title}</p>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center', marginTop: '16px', fontSize: '0.85rem', color: '#E2E8F0' }}>
-                {portfolioData.location && <span>{portfolioData.location}</span>}
-                {portfolioData.university && <span>• {portfolioData.university}</span>}
-              </div>
-            </div>
+      {renderStats('minimal')}
+
+      {portfolioData.bio && (
+        <div id="about" style={{ margin: '40px 0' }}>
+          <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '14px' }}>
+            About
           </div>
+          <p style={{ fontSize: '1rem', color: '#333', lineHeight: '1.7', whiteSpace: 'pre-line' }}>
+            {portfolioData.bio}
+          </p>
+        </div>
+      )}
 
-          <div style={{ padding: '40px' }}>
-            {renderStats('professional')}
+      {portfolioData.skills && portfolioData.skills.length > 0 && (
+        <div id="skills" style={{ margin: '40px 0' }}>
+          <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '14px' }}>
+            {indConfig.skillsTitle}
+          </div>
+          {renderSkills(portfolioData.skills, 'minimal')}
+        </div>
+      )}
 
-            {portfolioData.bio && (
-              <div style={{ marginBottom: '32px' }}>
-                <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Profile Summary</h3>
-                <p style={{ fontSize: '0.95rem', color: '#4A5568', lineHeight: 1.7, marginTop: '12px' }}>{portfolioData.bio}</p>
-              </div>
-            )}
-
-            {portfolioData.skills && portfolioData.skills.length > 0 && (
-              <div style={{ marginBottom: '32px' }}>
-                <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Key Competencies</h3>
-                {renderSkills(portfolioData.skills, 'professional')}
-              </div>
-            )}
-
-            {portfolioData.projects && portfolioData.projects.length > 0 && (
-              <div style={{ marginBottom: '32px' }}>
-                <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Project Case Studies</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginTop: '16px' }}>
-                  {portfolioData.projects.map(proj => (
-                    <div key={proj.id} style={{ border: '1px solid #E2E8F0', borderRadius: '6px', padding: '20px', background: '#F8FAFC' }}>
-                      <h4 style={{ color: '#2C5282', fontSize: '1.1rem', fontWeight: 700 }}>{proj.name}</h4>
-                      <p style={{ fontSize: '0.85rem', color: '#4A5568', margin: '8px 0', lineHeight: 1.5 }}>{proj.description}</p>
-                      {proj.technologies && <div style={{ fontSize: '0.75rem', color: '#718096', marginBottom: '12px' }}>Stack: {proj.technologies}</div>}
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        {proj.githubUrl && <a href={proj.githubUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.78rem', color: '#3182CE', fontWeight: 600 }}>GitHub Code</a>}
-                        {proj.liveUrl && <a href={proj.liveUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.78rem', color: '#3182CE', fontWeight: 600 }}>Live URL</a>}
-                      </div>
-                    </div>
-                  ))}
+      {portfolioData.projects && portfolioData.projects.length > 0 && (
+        <div id="projects" style={{ margin: '40px 0' }}>
+          <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '20px' }}>
+            {indConfig.projectsTitle}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {portfolioData.projects.map((proj) => (
+              <div key={proj.id} style={{ borderBottom: '1px solid #F0F0F0', paddingBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#1A1A1A' }}>{proj.name}</h3>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    {proj.githubUrl && <a href={formatExternalUrl(proj.githubUrl)} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#555', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}><Github size={14} /> Code</a>}
+                    {proj.liveUrl && <a href={formatExternalUrl(proj.liveUrl)} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#555', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}><ExternalLink size={14} /> Demo</a>}
+                  </div>
                 </div>
+                <p style={{ fontSize: '0.92rem', color: '#555', margin: '8px 0 12px 0', lineHeight: 1.6 }}>{proj.description}</p>
+                {proj.technologies && (
+                  <div style={{ fontSize: '0.78rem', color: '#888', fontWeight: 500 }}>
+                    Built with: <span style={{ color: '#444' }}>{proj.technologies}</span>
+                  </div>
+                )}
               </div>
-            )}
+            ))}
+          </div>
+        </div>
+      )}
 
-            {portfolioData.experience && portfolioData.experience.length > 0 && (
-              <div style={{ marginBottom: '32px' }}>
-                <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Experience</h3>
-                {renderExperienceList(portfolioData.experience, 'professional')}
-              </div>
-            )}
+      {portfolioData.experience && portfolioData.experience.length > 0 && (
+        <div id="experience" style={{ margin: '40px 0' }}>
+          <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '20px' }}>
+            {indConfig.experienceTitle}
+          </div>
+          {renderExperienceList(portfolioData.experience, 'minimal')}
+        </div>
+      )}
 
-            {portfolioData.education && portfolioData.education.length > 0 && (
-              <div style={{ marginBottom: '32px' }}>
-                <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Education</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
-                  {portfolioData.education.map(edu => (
-                    <div key={edu.id}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#2D3748' }}>
-                        <span>{edu.degree}</span>
-                        <span>{edu.duration}</span>
-                      </div>
-                      <div style={{ color: '#4A5568', fontSize: '0.9rem' }}>{edu.institution}</div>
-                      {edu.description && <p style={{ fontSize: '0.82rem', color: '#718096', marginTop: '4px' }}>{edu.description}</p>}
-                    </div>
-                  ))}
+      {portfolioData.education && portfolioData.education.length > 0 && (
+        <div id="education" style={{ margin: '40px 0' }}>
+          <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '20px' }}>
+            {indConfig.educationTitle}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {portfolioData.education.map(edu => (
+              <div key={edu.id}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 600 }}>{edu.degree}</h4>
+                  <span style={{ fontSize: '0.85rem', color: '#777' }}>{edu.duration}</span>
                 </div>
+                <div style={{ fontSize: '0.9rem', color: '#555', margin: '4px 0' }}>{edu.institution}</div>
+                {edu.description && <p style={{ fontSize: '0.85rem', color: '#666', lineHeight: 1.5 }}>{edu.description}</p>}
               </div>
-            )}
+            ))}
+          </div>
+        </div>
+      )}
 
-            <div>
-              <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Contact Information</h3>
-              {renderSocials(portfolioData.contact, '', { marginTop: '16px' })}
+      {portfolioData.certifications && portfolioData.certifications.length > 0 && (
+        <div id="certifications" style={{ margin: '40px 0' }}>
+          <div className="section-title" style={{ fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: indConfig.accentColor, fontWeight: 700, marginBottom: '20px' }}>
+            Certifications
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            {portfolioData.certifications.map(cert => (
+              <div key={cert.id} style={{ border: '1px solid #ECECEC', padding: '16px', borderRadius: '8px' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 600 }}>{cert.name}</h4>
+                <div style={{ fontSize: '0.82rem', color: '#666', marginTop: '4px' }}>{cert.issuer}</div>
+                <div style={{ fontSize: '0.78rem', color: '#999', marginTop: '2px' }}>Issued: {cert.date}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // 2. PROFESSIONAL THEME CONTENT
+  const renderProfessional = () => (
+    <div className="theme-preview-professional" style={{ padding: isPreviewMode ? '24px 16px' : '48px 32px', background: '#F7FAFC' }}>
+      <div style={{ maxWidth: '960px', margin: '0 auto', background: '#FFF', border: '1px solid #E2E8F0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+        <div style={{ background: '#1A365D', color: '#FFF', padding: '40px', display: 'flex', flexDirection: portfolioData.avatarUrl ? 'row' : 'column', alignItems: 'center', gap: '32px' }}>
+          {portfolioData.avatarUrl && (
+            <img 
+              src={portfolioData.avatarUrl} 
+              alt={portfolioData.name} 
+              style={{ width: '120px', height: '120px', borderRadius: '50%', border: '4px solid rgba(255,255,255,0.2)', objectFit: 'cover' }} 
+            />
+          )}
+          <div style={{ textAlign: portfolioData.avatarUrl ? 'left' : 'center', flex: 1 }}>
+            <h1 style={{ color: '#FFF', fontSize: '2.5rem', fontWeight: 800, margin: 0 }}>{portfolioData.name || 'Your Name'}</h1>
+            <p style={{ color: '#90CDF4', fontSize: '1.2rem', margin: '8px 0 0 0', fontWeight: 500 }}>{portfolioData.title}</p>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center', marginTop: '16px', fontSize: '0.85rem', color: '#E2E8F0' }}>
+              {portfolioData.location && <span>{portfolioData.location}</span>}
+              {portfolioData.university && <span>• {portfolioData.university}</span>}
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
 
-  // 3. MODERN DARK THEME
-  if (activeTheme === 'modern') {
-    return (
-      <div className="theme-preview-modern" style={{ padding: isPreviewMode ? '24px 16px' : '60px 40px', background: '#111827', color: '#F3F4F6' }}>
-        <div style={{ maxWidth: '850px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', flexDirection: portfolioData.avatarUrl ? 'row' : 'column', alignItems: 'center', gap: '32px', marginBottom: '48px', textAlign: portfolioData.avatarUrl ? 'left' : 'center' }}>
-            {portfolioData.avatarUrl && (
-              <img 
-                src={portfolioData.avatarUrl} 
-                alt={portfolioData.name} 
-                style={{ width: '140px', height: '140px', borderRadius: '24px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} 
-              />
-            )}
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(52, 211, 153, 0.1)', color: '#34D399', padding: '6px 12px', borderRadius: '30px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '16px' }}>
-                <span style={{ width: '6px', height: '6px', background: '#34D399', borderRadius: '50%' }}></span>
-                OPEN TO OFFERS
-              </div>
-              <h1 style={{ fontSize: '3rem', fontWeight: 900, color: '#FFF', margin: 0 }}>{portfolioData.name || 'Your Name'}</h1>
-              <p style={{ fontSize: '1.25rem', color: '#9CA3AF', marginTop: '8px' }}>{portfolioData.title}</p>
-              {renderSocials(portfolioData.contact, '', { marginTop: '20px', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center' })}
-            </div>
-          </div>
-
-          {renderStats('modern')}
+        <div style={{ padding: '40px' }}>
+          {renderStats('professional')}
 
           {portfolioData.bio && (
-            <div style={{ marginBottom: '40px' }}>
-              <h3 style={{ color: '#FFF', fontSize: '1.3rem', fontWeight: 700, marginBottom: '16px' }}>Biography</h3>
-              <p style={{ fontSize: '0.98rem', color: '#D1D5DB', lineHeight: 1.7 }}>{portfolioData.bio}</p>
+            <div id="about" style={{ marginBottom: '32px' }}>
+              <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Profile Summary</h3>
+              <p style={{ fontSize: '0.95rem', color: '#4A5568', lineHeight: 1.7, marginTop: '12px' }}>{portfolioData.bio}</p>
             </div>
           )}
 
           {portfolioData.skills && portfolioData.skills.length > 0 && (
-            <div style={{ marginBottom: '40px' }}>
-              <h3 style={{ color: '#FFF', fontSize: '1.3rem', fontWeight: 700, marginBottom: '16px' }}>Tech Stack</h3>
-              {renderSkills(portfolioData.skills, 'modern')}
+            <div id="skills" style={{ marginBottom: '32px' }}>
+              <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Key Competencies</h3>
+              {renderSkills(portfolioData.skills, 'professional')}
             </div>
           )}
 
           {portfolioData.projects && portfolioData.projects.length > 0 && (
-            <div style={{ marginBottom: '40px' }}>
-              <h3 style={{ color: '#FFF', fontSize: '1.3rem', fontWeight: 700, marginBottom: '20px' }}>Featured Projects</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+            <div id="projects" style={{ marginBottom: '32px' }}>
+              <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Project Case Studies</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginTop: '16px' }}>
                 {portfolioData.projects.map(proj => (
-                  <div key={proj.id} style={{ background: '#1F2937', border: '1px solid #374151', borderRadius: '12px', padding: '24px', transition: 'all 0.3s ease' }}>
-                    <h4 style={{ color: '#FFF', fontSize: '1.1rem' }}>{proj.name}</h4>
-                    <p style={{ fontSize: '0.85rem', color: '#9CA3AF', margin: '12px 0', lineHeight: 1.6 }}>{proj.description}</p>
-                    {proj.technologies && <div style={{ fontSize: '0.75rem', color: '#34D399', marginBottom: '16px' }}>{proj.technologies}</div>}
-                    <div style={{ display: 'flex', gap: '16px' }}>
-                      {proj.githubUrl && <a href={proj.githubUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#FFF', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}><Github size={12} /> Code</a>}
-                      {proj.liveUrl && <a href={proj.liveUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#34D399', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}><ExternalLink size={12} /> Live Link</a>}
+                  <div key={proj.id} style={{ border: '1px solid #E2E8F0', borderRadius: '6px', padding: '20px', background: '#F8FAFC' }}>
+                    <h4 style={{ color: '#2C5282', fontSize: '1.1rem', fontWeight: 700 }}>{proj.name}</h4>
+                    <p style={{ fontSize: '0.85rem', color: '#4A5568', margin: '8px 0', lineHeight: 1.5 }}>{proj.description}</p>
+                    {proj.technologies && <div style={{ fontSize: '0.75rem', color: '#718096', marginBottom: '12px' }}>Stack: {proj.technologies}</div>}
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      {proj.githubUrl && <a href={formatExternalUrl(proj.githubUrl)} target="_blank" rel="noreferrer" style={{ fontSize: '0.78rem', color: '#3182CE', fontWeight: 600 }}>GitHub Code</a>}
+                      {proj.liveUrl && <a href={formatExternalUrl(proj.liveUrl)} target="_blank" rel="noreferrer" style={{ fontSize: '0.78rem', color: '#3182CE', fontWeight: 600 }}>Live URL</a>}
                     </div>
                   </div>
                 ))}
@@ -817,66 +781,24 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
           )}
 
           {portfolioData.experience && portfolioData.experience.length > 0 && (
-            <div style={{ marginBottom: '40px' }}>
-              <h3 style={{ color: '#FFF', fontSize: '1.3rem', fontWeight: 700, marginBottom: '20px' }}>Experience History</h3>
-              {renderExperienceList(portfolioData.experience, 'modern')}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // 4. CREATIVE DESIGNER THEME
-  if (activeTheme === 'creative') {
-    return (
-      <div className="theme-preview-creative" style={{ padding: isPreviewMode ? '24px 16px' : '80px 40px', background: '#FDF6EC', color: '#3C2F2F' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', flexDirection: portfolioData.avatarUrl ? 'row' : 'column', alignItems: 'center', gap: '40px', marginBottom: '60px' }}>
-            {portfolioData.avatarUrl && (
-              <img 
-                src={portfolioData.avatarUrl} 
-                alt={portfolioData.name} 
-                className="blob-shape"
-                style={{ width: '160px', height: '160px', objectFit: 'cover', border: '3px solid #3C2F2F', boxShadow: '4px 4px 0px #3C2F2F' }} 
-              />
-            )}
-            <div style={{ flex: 1, textAlign: portfolioData.avatarUrl ? 'left' : 'center' }}>
-              <h1 style={{ fontSize: '3.5rem', fontWeight: 900, color: '#C85A17', letterSpacing: '-0.02em', margin: 0 }}>{portfolioData.name || 'Your Name'}</h1>
-              <p style={{ fontSize: '1.3rem', fontWeight: 700, color: '#D97706', marginTop: '12px' }}>{portfolioData.title}</p>
-              {renderSocials(portfolioData.contact, 'creative-btn', { marginTop: '20px', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center' })}
-            </div>
-          </div>
-
-          {renderStats('creative')}
-
-          {portfolioData.bio && (
-            <div style={{ marginBottom: '40px' }}>
-              <h2 className="section-title">Hello there!</h2>
-              <p style={{ fontSize: '1.1rem', lineHeight: 1.8, background: '#FFF', border: '3px solid #3C2F2F', boxShadow: '4px 4px 0 #3C2F2F', padding: '24px', borderRadius: '8px' }}>{portfolioData.bio}</p>
+            <div id="experience" style={{ marginBottom: '32px' }}>
+              <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Experience</h3>
+              {renderExperienceList(portfolioData.experience, 'professional')}
             </div>
           )}
 
-          {portfolioData.skills && portfolioData.skills.length > 0 && (
-            <div style={{ marginBottom: '40px' }}>
-              <h2 className="section-title">My Toolbox</h2>
-              {renderSkills(portfolioData.skills, 'creative')}
-            </div>
-          )}
-
-          {portfolioData.projects && portfolioData.projects.length > 0 && (
-            <div style={{ marginBottom: '40px' }}>
-              <h2 className="section-title">Selected Works</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                {portfolioData.projects.map(proj => (
-                  <div key={proj.id} className="creative-card">
-                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#C85A17' }}>{proj.name}</h3>
-                    <p style={{ fontSize: '0.95rem', margin: '12px 0', lineHeight: 1.6 }}>{proj.description}</p>
-                    {proj.technologies && <div style={{ fontSize: '0.78rem', color: '#D97706', fontWeight: 600 }}>Built with: {proj.technologies}</div>}
-                    <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-                      {proj.githubUrl && <a href={proj.githubUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#3C2F2F', textDecoration: 'underline' }}>Source Code</a>}
-                      {proj.liveUrl && <a href={proj.liveUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#3C2F2F', textDecoration: 'underline' }}>Live Project</a>}
+          {portfolioData.education && portfolioData.education.length > 0 && (
+            <div id="education" style={{ marginBottom: '32px' }}>
+              <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Education</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
+                {portfolioData.education.map(edu => (
+                  <div key={edu.id}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#2D3748' }}>
+                      <span>{edu.degree}</span>
+                      <span>{edu.duration}</span>
                     </div>
+                    <div style={{ color: '#4A5568', fontSize: '0.9rem' }}>{edu.institution}</div>
+                    {edu.description && <p style={{ fontSize: '0.82rem', color: '#718096', marginTop: '4px' }}>{edu.description}</p>}
                   </div>
                 ))}
               </div>
@@ -884,10 +806,383 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
           )}
         </div>
       </div>
-    );
+    </div>
+  );
+
+  // 3. MODERN DARK THEME CONTENT
+  const renderModern = () => (
+    <div className="theme-preview-modern" style={{ padding: isPreviewMode ? '24px 16px' : '60px 40px', background: '#111827', color: '#F3F4F6' }}>
+      <div style={{ maxWidth: '850px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: portfolioData.avatarUrl ? 'row' : 'column', alignItems: 'center', gap: '32px', marginBottom: '48px', textAlign: portfolioData.avatarUrl ? 'left' : 'center' }}>
+          {portfolioData.avatarUrl && (
+            <img 
+              src={portfolioData.avatarUrl} 
+              alt={portfolioData.name} 
+              style={{ width: '140px', height: '140px', borderRadius: '24px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} 
+            />
+          )}
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(52, 211, 153, 0.1)', color: '#34D399', padding: '6px 12px', borderRadius: '30px', fontSize: '0.8rem', fontWeight: 600, marginBottom: '16px' }}>
+              <span style={{ width: '6px', height: '6px', background: '#34D399', borderRadius: '50%' }}></span>
+              OPEN TO OFFERS
+            </div>
+            <h1 style={{ fontSize: '3rem', fontWeight: 900, color: '#FFF', margin: 0 }}>{portfolioData.name || 'Your Name'}</h1>
+            <p style={{ fontSize: '1.25rem', color: '#9CA3AF', marginTop: '8px' }}>{portfolioData.title}</p>
+            {renderSocials(portfolioData.contact, '', { marginTop: '20px', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center' })}
+          </div>
+        </div>
+
+        {renderStats('modern')}
+
+        {portfolioData.bio && (
+          <div id="about" style={{ marginBottom: '40px' }}>
+            <h3 style={{ color: '#FFF', fontSize: '1.3rem', fontWeight: 700, marginBottom: '16px' }}>Biography</h3>
+            <p style={{ fontSize: '0.98rem', color: '#D1D5DB', lineHeight: 1.7 }}>{portfolioData.bio}</p>
+          </div>
+        )}
+
+        {portfolioData.skills && portfolioData.skills.length > 0 && (
+          <div id="skills" style={{ marginBottom: '40px' }}>
+            <h3 style={{ color: '#FFF', fontSize: '1.3rem', fontWeight: 700, marginBottom: '16px' }}>Tech Stack</h3>
+            {renderSkills(portfolioData.skills, 'modern')}
+          </div>
+        )}
+
+        {portfolioData.projects && portfolioData.projects.length > 0 && (
+          <div id="projects" style={{ marginBottom: '40px' }}>
+            <h3 style={{ color: '#FFF', fontSize: '1.3rem', fontWeight: 700, marginBottom: '20px' }}>Featured Projects</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+              {portfolioData.projects.map(proj => (
+                <div key={proj.id} style={{ background: '#1F2937', border: '1px solid #374151', borderRadius: '12px', padding: '24px', transition: 'all 0.3s ease' }}>
+                  <h4 style={{ color: '#FFF', fontSize: '1.1rem' }}>{proj.name}</h4>
+                  <p style={{ fontSize: '0.85rem', color: '#9CA3AF', margin: '12px 0', lineHeight: 1.6 }}>{proj.description}</p>
+                  {proj.technologies && <div style={{ fontSize: '0.75rem', color: '#34D399', marginBottom: '16px' }}>{proj.technologies}</div>}
+                  <div style={{ display: 'flex', gap: '16px' }}>
+                    {proj.githubUrl && <a href={formatExternalUrl(proj.githubUrl)} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#FFF', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}><Github size={12} /> Code</a>}
+                    {proj.liveUrl && <a href={formatExternalUrl(proj.liveUrl)} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#34D399', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}><ExternalLink size={12} /> Live Link</a>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {portfolioData.experience && portfolioData.experience.length > 0 && (
+          <div id="experience" style={{ marginBottom: '40px' }}>
+            <h3 style={{ color: '#FFF', fontSize: '1.3rem', fontWeight: 700, marginBottom: '20px' }}>Experience History</h3>
+            {renderExperienceList(portfolioData.experience, 'modern')}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // 4. CREATIVE DESIGNER THEME CONTENT
+  const renderCreative = () => (
+    <div className="theme-preview-creative" style={{ padding: isPreviewMode ? '24px 16px' : '80px 40px', background: '#FDF6EC', color: '#3C2F2F' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: portfolioData.avatarUrl ? 'row' : 'column', alignItems: 'center', gap: '40px', marginBottom: '60px' }}>
+          {portfolioData.avatarUrl && (
+            <img 
+              src={portfolioData.avatarUrl} 
+              alt={portfolioData.name} 
+              className="blob-shape"
+              style={{ width: '160px', height: '160px', objectFit: 'cover', border: '3px solid #3C2F2F', boxShadow: '4px 4px 0px #3C2F2F' }} 
+            />
+          )}
+          <div style={{ flex: 1, textAlign: portfolioData.avatarUrl ? 'left' : 'center' }}>
+            <h1 style={{ fontSize: '3.5rem', fontWeight: 900, color: '#C85A17', letterSpacing: '-0.02em', margin: 0 }}>{portfolioData.name || 'Your Name'}</h1>
+            <p style={{ fontSize: '1.3rem', fontWeight: 700, color: '#D97706', marginTop: '12px' }}>{portfolioData.title}</p>
+            {renderSocials(portfolioData.contact, 'creative-btn', { marginTop: '20px', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center' })}
+          </div>
+        </div>
+
+        {renderStats('creative')}
+
+        {portfolioData.bio && (
+          <div id="about" style={{ marginBottom: '40px' }}>
+            <h2 className="section-title">Hello there!</h2>
+            <p style={{ fontSize: '1.1rem', lineHeight: 1.8, background: '#FFF', border: '3px solid #3C2F2F', boxShadow: '4px 4px 0 #3C2F2F', padding: '24px', borderRadius: '8px' }}>{portfolioData.bio}</p>
+          </div>
+        )}
+
+        {portfolioData.skills && portfolioData.skills.length > 0 && (
+          <div id="skills" style={{ marginBottom: '40px' }}>
+            <h2 className="section-title">My Toolbox</h2>
+            {renderSkills(portfolioData.skills, 'creative')}
+          </div>
+        )}
+
+        {portfolioData.projects && portfolioData.projects.length > 0 && (
+          <div id="projects" style={{ marginBottom: '40px' }}>
+            <h2 className="section-title">Selected Works</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+              {portfolioData.projects.map(proj => (
+                <div key={proj.id} className="creative-card">
+                  <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#C85A17' }}>{proj.name}</h3>
+                  <p style={{ fontSize: '0.95rem', margin: '12px 0', lineHeight: 1.6 }}>{proj.description}</p>
+                  {proj.technologies && <div style={{ fontSize: '0.78rem', color: '#D97706', fontWeight: 600 }}>Built with: {proj.technologies}</div>}
+                  <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+                    {proj.githubUrl && <a href={formatExternalUrl(proj.githubUrl)} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#3C2F2F', textDecoration: 'underline' }}>Source Code</a>}
+                    {proj.liveUrl && <a href={formatExternalUrl(proj.liveUrl)} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#3C2F2F', textDecoration: 'underline' }}>Live Project</a>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  let themeContent = null;
+  if (activeTheme === 'minimal') {
+    themeContent = renderMinimal();
+  } else if (activeTheme === 'professional') {
+    themeContent = renderProfessional();
+  } else if (activeTheme === 'modern') {
+    themeContent = renderModern();
+  } else if (activeTheme === 'creative') {
+    themeContent = renderCreative();
   }
 
-  return null;
+  if (!themeContent) return null;
+
+  // Header & Footer styling based on theme
+  const sections = [
+    { id: 'about', label: 'About', show: !!portfolioData.bio },
+    { id: 'skills', label: 'Skills', show: portfolioData.skills && portfolioData.skills.length > 0 },
+    { id: 'projects', label: 'Projects', show: portfolioData.projects && portfolioData.projects.length > 0 },
+    { id: 'experience', label: 'Experience', show: portfolioData.experience && portfolioData.experience.length > 0 },
+    { id: 'education', label: 'Education', show: portfolioData.education && portfolioData.education.length > 0 },
+    { id: 'certifications', label: 'Certifications', show: portfolioData.certifications && portfolioData.certifications.length > 0 }
+  ].filter(s => s.show);
+
+  let wrapperStyle: React.CSSProperties = {
+    minHeight: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    scrollBehavior: 'smooth',
+    background: '#FFF',
+    color: '#1A1A1A'
+  };
+
+  let headerStyle: React.CSSProperties = {
+    position: 'sticky',
+    top: 0,
+    zIndex: 50,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px 40px',
+    background: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(8px)',
+    borderBottom: '1px solid #ECECEC',
+    transition: 'all 0.3s ease'
+  };
+
+  let logoStyle: React.CSSProperties = {
+    fontSize: '1.25rem',
+    fontWeight: 800,
+    color: '#1A1A1A',
+    textDecoration: 'none',
+    letterSpacing: '-0.02em'
+  };
+
+  let navLinkStyle = (isActive: boolean): React.CSSProperties => ({
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    color: isActive ? 'var(--primary)' : '#555',
+    textDecoration: 'none',
+    transition: 'color 0.2s ease',
+    cursor: 'pointer'
+  });
+
+  let ctaStyle: React.CSSProperties = {
+    background: 'var(--primary)',
+    color: '#FFF',
+    padding: '8px 20px',
+    borderRadius: '20px',
+    fontSize: '0.85rem',
+    fontWeight: 700,
+    textDecoration: 'none',
+    boxShadow: '0 4px 12px rgba(154, 177, 122, 0.2)',
+    transition: 'all 0.2s ease'
+  };
+
+  let footerStyle: React.CSSProperties = {
+    background: '#FAF9F6',
+    borderTop: '1px solid #ECECEC',
+    padding: '40px 40px 32px',
+    textAlign: 'center',
+    color: '#666',
+    fontSize: '0.88rem'
+  };
+
+  if (activeTheme === 'professional') {
+    wrapperStyle = {
+      ...wrapperStyle,
+      background: '#F7FAFC',
+      color: '#2D3748'
+    };
+    headerStyle = {
+      ...headerStyle,
+      background: 'rgba(26, 54, 93, 0.95)',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      color: '#FFF'
+    };
+    logoStyle = {
+      ...logoStyle,
+      color: '#FFF'
+    };
+    navLinkStyle = (isActive: boolean): React.CSSProperties => ({
+      fontSize: '0.9rem',
+      fontWeight: 600,
+      color: isActive ? '#90CDF4' : '#E2E8F0',
+      textDecoration: 'none',
+      cursor: 'pointer'
+    });
+    ctaStyle = {
+      background: '#3182CE',
+      color: '#FFF',
+      padding: '8px 20px',
+      borderRadius: '4px',
+      fontSize: '0.85rem',
+      fontWeight: 700,
+      textDecoration: 'none'
+    };
+    footerStyle = {
+      background: '#1A365D',
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      padding: '40px 40px 32px',
+      textAlign: 'center',
+      color: '#E2E8F0'
+    };
+  } else if (activeTheme === 'modern') {
+    wrapperStyle = {
+      ...wrapperStyle,
+      background: '#111827',
+      color: '#F3F4F6'
+    };
+    headerStyle = {
+      ...headerStyle,
+      background: 'rgba(17, 24, 39, 0.95)',
+      borderBottom: '1px solid #374151',
+      color: '#FFF'
+    };
+    logoStyle = {
+      ...logoStyle,
+      color: '#FFF'
+    };
+    navLinkStyle = (isActive: boolean): React.CSSProperties => ({
+      fontSize: '0.9rem',
+      fontWeight: 600,
+      color: isActive ? '#34D399' : '#9CA3AF',
+      textDecoration: 'none',
+      cursor: 'pointer'
+    });
+    ctaStyle = {
+      background: '#34D399',
+      color: '#111827',
+      padding: '8px 20px',
+      borderRadius: '99px',
+      fontSize: '0.85rem',
+      fontWeight: 700,
+      textDecoration: 'none'
+    };
+    footerStyle = {
+      background: '#0B0F19',
+      borderTop: '1px solid #374151',
+      padding: '40px 40px 32px',
+      textAlign: 'center',
+      color: '#9CA3AF'
+    };
+  } else if (activeTheme === 'creative') {
+    wrapperStyle = {
+      ...wrapperStyle,
+      background: '#FDF6EC',
+      color: '#3C2F2F'
+    };
+    headerStyle = {
+      ...headerStyle,
+      background: '#FDF6EC',
+      borderBottom: '3px solid #3C2F2F',
+      color: '#3C2F2F'
+    };
+    logoStyle = {
+      ...logoStyle,
+      color: '#C85A17',
+      fontWeight: 900
+    };
+    navLinkStyle = (isActive: boolean): React.CSSProperties => ({
+      fontSize: '0.95rem',
+      fontWeight: 700,
+      color: '#3C2F2F',
+      textDecoration: 'none',
+      cursor: 'pointer'
+    });
+    ctaStyle = {
+      background: '#D97706',
+      color: '#FFF',
+      padding: '8px 20px',
+      border: '2px solid #3C2F2F',
+      boxShadow: '3px 3px 0px #3C2F2F',
+      borderRadius: '4px',
+      fontSize: '0.85rem',
+      fontWeight: 800,
+      textDecoration: 'none'
+    };
+    footerStyle = {
+      background: '#FAF0E3',
+      borderTop: '3px solid #3C2F2F',
+      padding: '40px 40px 32px',
+      textAlign: 'center',
+      color: '#3C2F2F'
+    };
+  }
+
+  return (
+    <div style={wrapperStyle}>
+      <header style={headerStyle}>
+        <a href="#" style={logoStyle}>
+          {portfolioData.name || 'Portfolio'}
+        </a>
+        <nav style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          {sections.map(s => (
+            <a key={s.id} href={`#${s.id}`} style={navLinkStyle(false)}>
+              {s.label}
+            </a>
+          ))}
+          {portfolioData.contact.email && (
+            <a href={`mailto:${portfolioData.contact.email}`} style={ctaStyle}>
+              Hire Me
+            </a>
+          )}
+        </nav>
+      </header>
+
+      <main style={{ flex: 1 }}>
+        {themeContent}
+      </main>
+
+      <footer style={footerStyle}>
+        <div style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '8px' }}>
+          {portfolioData.name || 'Portfolio'}
+        </div>
+        {portfolioData.title && (
+          <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '16px' }}>
+            {portfolioData.title}
+          </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '16px' }}>
+          {renderSocials(portfolioData.contact, '', { justifyContent: 'center' })}
+        </div>
+        <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+          &copy; {new Date().getFullYear()} {portfolioData.name || 'Portfolio'}. All rights reserved.
+        </div>
+      </footer>
+    </div>
+  );
 };
 
 export default function App() {
@@ -977,6 +1272,7 @@ export default function App() {
   const [portfolioData, setPortfolioData] = useState<PortfolioData>(emptyPortfolio)
   const [activeTheme, setActiveTheme] = useState<string>('minimal')
   const [viewportMode, setViewportMode] = useState<string>('desktop')
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState<boolean>(false)
 
   // Analytics State
   const [analytics, setAnalytics] = useState({
@@ -1020,6 +1316,7 @@ export default function App() {
   // Fetch Database Data for current user
   const fetchUserData = async (userId: string) => {
     if (!supabase) return;
+    if (userId === '00000000-0000-0000-0000-000000000000') return;
     setSimulateLoading(true);
     try {
       // 1. Fetch Profile
@@ -1063,6 +1360,12 @@ export default function App() {
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: true });
+
+      // 6.5. Fetch Social Links
+      const { data: socialLinks } = await supabase
+        .from('social_links')
+        .select('*')
+        .eq('user_id', userId);
 
       // 7. Fetch Portfolio Settings
       let { data: settings } = await supabase
@@ -1115,7 +1418,7 @@ export default function App() {
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-      // 10. Fetch Audit Logs
+      // 11. Fetch Audit Logs
       const { data: audits } = await supabase
         .from('audit_logs')
         .select('*')
@@ -1220,8 +1523,13 @@ export default function App() {
           email: profile?.email || '',
           phone: profile?.phone || '',
           website: profile?.website || '',
-          linkedin: '',
-          github: ''
+          linkedin: socialLinks?.find(s => s.platform.toLowerCase() === 'linkedin')?.url || '',
+          github: socialLinks?.find(s => s.platform.toLowerCase() === 'github')?.url || '',
+          behance: socialLinks?.find(s => s.platform.toLowerCase() === 'behance')?.url || '',
+          dribbble: socialLinks?.find(s => s.platform.toLowerCase() === 'dribbble')?.url || '',
+          instagram: socialLinks?.find(s => s.platform.toLowerCase() === 'instagram')?.url || '',
+          x: socialLinks?.find(s => s.platform.toLowerCase() === 'x')?.url || '',
+          facebook: socialLinks?.find(s => s.platform.toLowerCase() === 'facebook')?.url || ''
         }
       });
 
@@ -1315,6 +1623,11 @@ export default function App() {
               .select('*')
               .eq('user_id', userId);
 
+            const { data: socialLinks } = await supabase
+              .from('social_links')
+              .select('*')
+              .eq('user_id', userId);
+
             setPortfolioData({
               name: profile?.full_name || '',
               avatarUrl: profile?.profile_image_url || '',
@@ -1357,8 +1670,13 @@ export default function App() {
                 email: profile?.email || '',
                 phone: profile?.phone || '',
                 website: profile?.website || '',
-                linkedin: '',
-                github: ''
+                linkedin: socialLinks?.find(s => s.platform.toLowerCase() === 'linkedin')?.url || '',
+                github: socialLinks?.find(s => s.platform.toLowerCase() === 'github')?.url || '',
+                behance: socialLinks?.find(s => s.platform.toLowerCase() === 'behance')?.url || '',
+                dribbble: socialLinks?.find(s => s.platform.toLowerCase() === 'dribbble')?.url || '',
+                instagram: socialLinks?.find(s => s.platform.toLowerCase() === 'instagram')?.url || '',
+                x: socialLinks?.find(s => s.platform.toLowerCase() === 'x')?.url || '',
+                facebook: socialLinks?.find(s => s.platform.toLowerCase() === 'facebook')?.url || ''
               }
             });
 
@@ -1443,6 +1761,25 @@ export default function App() {
   const [newEdu, setNewEdu] = useState<Omit<EducationItem, 'id'>>({ institution: '', degree: '', duration: '', description: '' })
   const [newProj, setNewProj] = useState<Omit<ProjectItem, 'id'>>({ name: '', description: '', technologies: '', githubUrl: '', liveUrl: '' })
   const [newCert, setNewCert] = useState<Omit<CertificationItem, 'id'>>({ name: '', issuer: '', date: '' })
+
+  const [editingExpId, setEditingExpId] = useState<string | null>(null)
+  const [editingEduId, setEditingEduId] = useState<string | null>(null)
+  const [editingProjId, setEditingProjId] = useState<string | null>(null)
+  const [editingCertId, setEditingCertId] = useState<string | null>(null)
+
+  // Experience duration helper states
+  const [expStartMonth, setExpStartMonth] = useState<string>('Jan')
+  const [expStartYear, setExpStartYear] = useState<string>(String(new Date().getFullYear()))
+  const [expEndMonth, setExpEndMonth] = useState<string>('Jan')
+  const [expEndYear, setExpEndYear] = useState<string>(String(new Date().getFullYear()))
+  const [expIsCurrent, setExpIsCurrent] = useState<boolean>(false)
+
+  // Education duration helper states
+  const [eduStartMonth, setEduStartMonth] = useState<string>('Jan')
+  const [eduStartYear, setEduStartYear] = useState<string>(String(new Date().getFullYear()))
+  const [eduEndMonth, setEduEndMonth] = useState<string>('Jan')
+  const [eduEndYear, setEduEndYear] = useState<string>(String(new Date().getFullYear()))
+  const [eduIsCurrent, setEduIsCurrent] = useState<boolean>(false)
 
   const showAlert = (text: string, type: 'info' | 'success' = 'info') => {
     setAlertMsg({ type, text })
@@ -1967,30 +2304,63 @@ export default function App() {
     if (!newExp.company || !newExp.role) return showAlert('Please fill in Company and Role.', 'info')
     const user = (await supabase.auth.getUser()).data.user;
     if (user) {
-      const { data, error } = await supabase.from('experience').insert({
-        user_id: user.id,
-        company: newExp.company,
-        position: newExp.role,
-        start_date: newExp.duration.split('-')[0]?.trim() || '',
-        end_date: newExp.duration.split('-')[1]?.trim() || '',
-        description: newExp.description
-      }).select().single();
+      const startD = `${expStartMonth} ${expStartYear}`;
+      const endD = expIsCurrent ? 'Present' : `${expEndMonth} ${expEndYear}`;
+      const durationStr = `${startD} - ${endD}`;
 
-      if (error) return showAlert(error.message, 'info');
+      if (editingExpId) {
+        // Edit mode
+        const { error } = await supabase.from('experience').update({
+          company: newExp.company,
+          position: newExp.role,
+          start_date: startD,
+          end_date: endD,
+          description: newExp.description
+        }).eq('id', editingExpId);
 
-      setPortfolioData(prev => ({
-        ...prev,
-        experience: [...prev.experience, {
-          id: data.id,
-          company: data.company,
-          role: data.position,
-          duration: `${data.start_date} - ${data.end_date}`,
-          description: data.description || ''
-        }]
-      }));
-      setNewExp({ company: '', role: '', duration: '', description: '' })
-      showAlert('Experience item added.', 'success')
-      await logActivity('Experience Added', { id: data.id, role: data.position });
+        if (error) return showAlert(error.message, 'info');
+
+        setPortfolioData(prev => ({
+          ...prev,
+          experience: prev.experience.map(item => item.id === editingExpId ? {
+            id: editingExpId,
+            company: newExp.company,
+            role: newExp.role,
+            duration: durationStr,
+            description: newExp.description
+          } : item)
+        }));
+        setEditingExpId(null);
+        setNewExp({ company: '', role: '', duration: '', description: '' });
+        showAlert('Experience item updated.', 'success');
+        await logActivity('Experience Updated', { id: editingExpId, role: newExp.role });
+      } else {
+        // Add mode
+        const { data, error } = await supabase.from('experience').insert({
+          user_id: user.id,
+          company: newExp.company,
+          position: newExp.role,
+          start_date: startD,
+          end_date: endD,
+          description: newExp.description
+        }).select().single();
+
+        if (error) return showAlert(error.message, 'info');
+
+        setPortfolioData(prev => ({
+          ...prev,
+          experience: [...prev.experience, {
+            id: data.id,
+            company: data.company,
+            role: data.position,
+            duration: durationStr,
+            description: data.description || ''
+          }]
+        }));
+        setNewExp({ company: '', role: '', duration: '', description: '' });
+        showAlert('Experience item added.', 'success');
+        await logActivity('Experience Added', { id: data.id, role: data.position });
+      }
     }
   }
 
@@ -2002,6 +2372,10 @@ export default function App() {
       ...prev,
       experience: prev.experience.filter(item => item.id !== id)
     }));
+    if (editingExpId === id) {
+      setEditingExpId(null);
+      setNewExp({ company: '', role: '', duration: '', description: '' });
+    }
     showAlert('Experience item deleted.', 'info');
     await logActivity('Experience Deleted', { id });
   }
@@ -2010,30 +2384,62 @@ export default function App() {
     if (!newEdu.institution || !newEdu.degree) return showAlert('Please fill in Institution and Degree.', 'info')
     const user = (await supabase.auth.getUser()).data.user;
     if (user) {
-      const { data, error } = await supabase.from('education').insert({
-        user_id: user.id,
-        institution: newEdu.institution,
-        program: newEdu.degree,
-        graduation_year: newEdu.duration,
-        cgpa: '',
-        description: newEdu.description
-      }).select().single();
+      const startD = `${eduStartMonth} ${eduStartYear}`;
+      const endD = eduIsCurrent ? 'Present' : `${eduEndMonth} ${eduEndYear}`;
+      const durationStr = `${startD} - ${endD}`;
 
-      if (error) return showAlert(error.message, 'info');
+      if (editingEduId) {
+        // Edit mode
+        const { error } = await supabase.from('education').update({
+          institution: newEdu.institution,
+          program: newEdu.degree,
+          graduation_year: durationStr,
+          description: newEdu.description
+        }).eq('id', editingEduId);
 
-      setPortfolioData(prev => ({
-        ...prev,
-        education: [...prev.education, {
-          id: data.id,
-          institution: data.institution,
-          degree: data.program,
-          duration: data.graduation_year || '',
-          description: data.description || ''
-        }]
-      }));
-      setNewEdu({ institution: '', degree: '', duration: '', description: '' })
-      showAlert('Education item added.', 'success')
-      await logActivity('Education Added', { id: data.id });
+        if (error) return showAlert(error.message, 'info');
+
+        setPortfolioData(prev => ({
+          ...prev,
+          education: prev.education.map(item => item.id === editingEduId ? {
+            id: editingEduId,
+            institution: newEdu.institution,
+            degree: newEdu.degree,
+            duration: durationStr,
+            description: newEdu.description
+          } : item)
+        }));
+        setEditingEduId(null);
+        setNewEdu({ institution: '', degree: '', duration: '', description: '' });
+        showAlert('Education item updated.', 'success');
+        await logActivity('Education Updated', { id: editingEduId });
+      } else {
+        // Add mode
+        const { data, error } = await supabase.from('education').insert({
+          user_id: user.id,
+          institution: newEdu.institution,
+          program: newEdu.degree,
+          graduation_year: durationStr,
+          cgpa: '',
+          description: newEdu.description
+        }).select().single();
+
+        if (error) return showAlert(error.message, 'info');
+
+        setPortfolioData(prev => ({
+          ...prev,
+          education: [...prev.education, {
+            id: data.id,
+            institution: data.institution,
+            degree: data.program,
+            duration: durationStr,
+            description: data.description || ''
+          }]
+        }));
+        setNewEdu({ institution: '', degree: '', duration: '', description: '' });
+        showAlert('Education item added.', 'success');
+        await logActivity('Education Added', { id: data.id });
+      }
     }
   }
 
@@ -2045,6 +2451,10 @@ export default function App() {
       ...prev,
       education: prev.education.filter(item => item.id !== id)
     }));
+    if (editingEduId === id) {
+      setEditingEduId(null);
+      setNewEdu({ institution: '', degree: '', duration: '', description: '' });
+    }
     showAlert('Education item deleted.', 'info');
     await logActivity('Education Deleted', { id });
   }
@@ -2053,34 +2463,66 @@ export default function App() {
     if (!newProj.name || !newProj.description) return showAlert('Please fill in Project Name and Description.', 'info')
     const user = (await supabase.auth.getUser()).data.user;
     if (user) {
-      const { data, error } = await supabase.from('projects').insert({
-        user_id: user.id,
-        title: newProj.name,
-        description: newProj.description,
-        thumbnail_url: newProj.technologies,
-        github_url: newProj.githubUrl,
-        project_url: newProj.liveUrl,
-        featured: false
-      }).select().single();
+      if (editingProjId) {
+        // Edit mode
+        const { error } = await supabase.from('projects').update({
+          title: newProj.name,
+          description: newProj.description,
+          thumbnail_url: newProj.technologies,
+          github_url: newProj.githubUrl,
+          project_url: newProj.liveUrl
+        }).eq('id', editingProjId);
 
-      if (error) return showAlert(error.message, 'info');
+        if (error) return showAlert(error.message, 'info');
 
-      setPortfolioData(prev => ({
-        ...prev,
-        projects: [...prev.projects, {
-          id: data.id,
-          name: data.title,
-          description: data.description || '',
-          technologies: data.thumbnail_url || '',
-          githubUrl: data.github_url || '',
-          liveUrl: data.project_url || ''
-        }]
-      }));
-      setNewProj({ name: '', description: '', technologies: '', githubUrl: '', liveUrl: '' })
-      setAiProjectPrompt('')
-      setAiProjectOutput('')
-      showAlert('Project item added.', 'success')
-      await logActivity('Project Updates', { action: 'Project added', id: data.id, name: data.title });
+        setPortfolioData(prev => ({
+          ...prev,
+          projects: prev.projects.map(item => item.id === editingProjId ? {
+            id: editingProjId,
+            name: newProj.name,
+            description: newProj.description,
+            technologies: newProj.technologies,
+            githubUrl: newProj.githubUrl,
+            liveUrl: newProj.liveUrl
+          } : item)
+        }));
+        setEditingProjId(null);
+        setNewProj({ name: '', description: '', technologies: '', githubUrl: '', liveUrl: '' });
+        setAiProjectPrompt('');
+        setAiProjectOutput('');
+        showAlert('Project updated.', 'success');
+        await logActivity('Project Updates', { action: 'Project updated', id: editingProjId, name: newProj.name });
+      } else {
+        // Add mode
+        const { data, error } = await supabase.from('projects').insert({
+          user_id: user.id,
+          title: newProj.name,
+          description: newProj.description,
+          thumbnail_url: newProj.technologies,
+          github_url: newProj.githubUrl,
+          project_url: newProj.liveUrl,
+          featured: false
+        }).select().single();
+
+        if (error) return showAlert(error.message, 'info');
+
+        setPortfolioData(prev => ({
+          ...prev,
+          projects: [...prev.projects, {
+            id: data.id,
+            name: data.title,
+            description: data.description || '',
+            technologies: data.thumbnail_url || '',
+            githubUrl: data.github_url || '',
+            liveUrl: data.project_url || ''
+          }]
+        }));
+        setNewProj({ name: '', description: '', technologies: '', githubUrl: '', liveUrl: '' });
+        setAiProjectPrompt('');
+        setAiProjectOutput('');
+        showAlert('Project item added.', 'success');
+        await logActivity('Project Updates', { action: 'Project added', id: data.id, name: data.title });
+      }
     }
   }
 
@@ -2092,6 +2534,10 @@ export default function App() {
       ...prev,
       projects: prev.projects.filter(item => item.id !== id)
     }));
+    if (editingProjId === id) {
+      setEditingProjId(null);
+      setNewProj({ name: '', description: '', technologies: '', githubUrl: '', liveUrl: '' });
+    }
     showAlert('Project deleted.', 'info')
     await logActivity('Project Updates', { action: 'Project deleted', id });
   }
@@ -2100,28 +2546,54 @@ export default function App() {
     if (!newCert.name || !newCert.issuer) return showAlert('Please fill in Name and Issuer.', 'info')
     const user = (await supabase.auth.getUser()).data.user;
     if (user) {
-      const { data, error } = await supabase.from('certifications').insert({
-        user_id: user.id,
-        title: newCert.name,
-        issuer: newCert.issuer,
-        issue_date: newCert.date,
-        certificate_url: ''
-      }).select().single();
+      if (editingCertId) {
+        // Edit mode
+        const { error } = await supabase.from('certifications').update({
+          title: newCert.name,
+          issuer: newCert.issuer,
+          issue_date: newCert.date
+        }).eq('id', editingCertId);
 
-      if (error) return showAlert(error.message, 'info');
+        if (error) return showAlert(error.message, 'info');
 
-      setPortfolioData(prev => ({
-        ...prev,
-        certifications: [...prev.certifications, {
-          id: data.id,
-          name: data.title,
-          issuer: data.issuer,
-          date: data.issue_date || ''
-        }]
-      }));
-      setNewCert({ name: '', issuer: '', date: '' })
-      showAlert('Certification added.', 'success')
-      await logActivity('Certification Added', { id: data.id });
+        setPortfolioData(prev => ({
+          ...prev,
+          certifications: prev.certifications.map(item => item.id === editingCertId ? {
+            id: editingCertId,
+            name: newCert.name,
+            issuer: newCert.issuer,
+            date: newCert.date
+          } : item)
+        }));
+        setEditingCertId(null);
+        setNewCert({ name: '', issuer: '', date: '' });
+        showAlert('Certification updated.', 'success');
+        await logActivity('Certification Updated', { id: editingCertId });
+      } else {
+        // Add mode
+        const { data, error } = await supabase.from('certifications').insert({
+          user_id: user.id,
+          title: newCert.name,
+          issuer: newCert.issuer,
+          issue_date: newCert.date,
+          certificate_url: ''
+        }).select().single();
+
+        if (error) return showAlert(error.message, 'info');
+
+        setPortfolioData(prev => ({
+          ...prev,
+          certifications: [...prev.certifications, {
+            id: data.id,
+            name: data.title,
+            issuer: data.issuer,
+            date: data.issue_date || ''
+          }]
+        }));
+        setNewCert({ name: '', issuer: '', date: '' });
+        showAlert('Certification added.', 'success');
+        await logActivity('Certification Added', { id: data.id });
+      }
     }
   }
 
@@ -2133,6 +2605,10 @@ export default function App() {
       ...prev,
       certifications: prev.certifications.filter(item => item.id !== id)
     }));
+    if (editingCertId === id) {
+      setEditingCertId(null);
+      setNewCert({ name: '', issuer: '', date: '' });
+    }
     showAlert('Certification deleted.', 'info')
     await logActivity('Certification Deleted', { id });
   }
@@ -2297,8 +2773,16 @@ export default function App() {
   const handleSaveProfileSettings = async () => {
     const user = (await supabase.auth.getUser()).data.user;
     if (user) {
+      if (portfolioData.avatarUrl && portfolioData.avatarUrl.trim() !== '') {
+        const imgRegex = /\.(jpeg|jpg|gif|png|webp|svg|bmp)(\?.*)?$/i;
+        if (!imgRegex.test(portfolioData.avatarUrl.trim())) {
+          return showAlert('Profile picture must be a valid image URL (ending with jpeg, jpg, png, webp, etc.)', 'info');
+        }
+      }
+
       const { error } = await supabase.from('profiles').update({
         full_name: portfolioData.name,
+        profile_image_url: portfolioData.avatarUrl,
         title: portfolioData.title,
         university: portfolioData.university,
         degree: portfolioData.degree,
@@ -2311,11 +2795,35 @@ export default function App() {
       }).eq('user_id', user.id);
 
       if (error) {
-        showAlert('Failed to save profile: ' + error.message, 'info');
-      } else {
-        showAlert('Profile updated successfully!', 'success');
-        await logActivity('Profile Updates', { action: 'Updated settings metadata' });
+        return showAlert('Failed to save profile: ' + error.message, 'info');
       }
+
+      // Save social links
+      const platforms = ['linkedin', 'github', 'behance', 'dribbble', 'instagram', 'x', 'facebook'];
+      for (const platform of platforms) {
+        let url = portfolioData.contact[platform as keyof PortfolioData['contact']] || '';
+        url = url.trim();
+        if (url !== '') {
+          url = formatExternalUrl(url); // Ensure valid URL prefix
+          const { data: existing } = await supabase
+            .from('social_links')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('platform', platform)
+            .maybeSingle();
+
+          if (existing) {
+            await supabase.from('social_links').update({ url }).eq('id', existing.id);
+          } else {
+            await supabase.from('social_links').insert({ user_id: user.id, platform, url });
+          }
+        } else {
+          await supabase.from('social_links').delete().eq('user_id', user.id).eq('platform', platform);
+        }
+      }
+
+      showAlert('Profile updated successfully!', 'success');
+      await logActivity('Profile Updates', { action: 'Updated settings metadata' });
     }
   }
 
@@ -3338,8 +3846,9 @@ export default function App() {
 
                   {/* 2. EDITOR PAGE */}
                   {currentPage === 'editor' && (
-                    <div className="builder-layout">
-                      <div className="editor-column">
+                    <div className="builder-layout" style={isPreviewExpanded ? { gridTemplateColumns: '1fr' } : {}}>
+                      {!isPreviewExpanded && (
+                        <div className="editor-column">
                         
                         {/* Simulation Controls for testing empty/error states */}
                         <div style={{ display: 'flex', gap: '16px', background: '#F8FAFC', border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
@@ -3384,15 +3893,116 @@ export default function App() {
                                     />
                                   </div>
                                   <div className="form-group">
-                                    <label className="form-label">Profile Picture URL</label>
-                                    <input 
-                                      type="text" 
-                                      className="form-input" 
-                                      placeholder="https://example.com/photo.jpg"
-                                      value={portfolioData.avatarUrl || ''} 
-                                      onChange={(e) => setPortfolioData({ ...portfolioData, avatarUrl: e.target.value })} 
-                                    />
-                                  </div>
+                                     <label className="form-label">Profile Picture</label>
+                                     <div 
+                                       style={{
+                                         border: '2px dashed var(--border)',
+                                         borderRadius: '8px',
+                                         padding: '20px',
+                                         textAlign: 'center',
+                                         background: '#F8FAFC',
+                                         cursor: 'pointer',
+                                         position: 'relative',
+                                         transition: 'all 0.2s ease',
+                                         display: 'flex',
+                                         flexDirection: 'column',
+                                         alignItems: 'center',
+                                         justifyContent: 'center',
+                                         minHeight: '140px',
+                                         gap: '10px'
+                                       }}
+                                       onDragOver={(e) => {
+                                         e.preventDefault();
+                                         e.currentTarget.style.borderColor = 'var(--primary)';
+                                         e.currentTarget.style.background = 'var(--primary-light)';
+                                       }}
+                                       onDragLeave={(e) => {
+                                         e.preventDefault();
+                                         e.currentTarget.style.borderColor = 'var(--border)';
+                                         e.currentTarget.style.background = '#F8FAFC';
+                                       }}
+                                       onDrop={async (e) => {
+                                         e.preventDefault();
+                                         e.currentTarget.style.borderColor = 'var(--border)';
+                                         e.currentTarget.style.background = '#F8FAFC';
+                                         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                                           const file = e.dataTransfer.files[0];
+                                           const reader = new FileReader();
+                                           reader.onloadend = () => {
+                                             setPortfolioData(prev => ({ ...prev, avatarUrl: reader.result as string }));
+                                           };
+                                           reader.readAsDataURL(file);
+                                           await handleFileUpload(file, 'avatar');
+                                         }
+                                       }}
+                                       onClick={() => {
+                                         const fileInput = document.getElementById('avatar-file-input');
+                                         if (fileInput) fileInput.click();
+                                       }}
+                                     >
+                                       <input 
+                                         type="file" 
+                                         id="avatar-file-input" 
+                                         accept="image/png, image/jpeg, image/jpg" 
+                                         style={{ display: 'none' }} 
+                                         onChange={async (e) => {
+                                           if (e.target.files && e.target.files[0]) {
+                                             const file = e.target.files[0];
+                                             const reader = new FileReader();
+                                             reader.onloadend = () => {
+                                               setPortfolioData(prev => ({ ...prev, avatarUrl: reader.result as string }));
+                                             };
+                                             reader.readAsDataURL(file);
+                                             await handleFileUpload(file, 'avatar');
+                                           }
+                                         }}
+                                       />
+                                       {portfolioData.avatarUrl ? (
+                                         <div style={{ position: 'relative', display: 'inline-block' }}>
+                                           <img 
+                                             src={portfolioData.avatarUrl} 
+                                             alt="Avatar Preview" 
+                                             style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} 
+                                           />
+                                           <button 
+                                             type="button"
+                                             style={{
+                                               position: 'absolute',
+                                               top: '-5px',
+                                               right: '-5px',
+                                               background: '#EF4444',
+                                               color: '#FFF',
+                                               border: 'none',
+                                               borderRadius: '50%',
+                                               width: '24px',
+                                               height: '24px',
+                                               display: 'flex',
+                                               alignItems: 'center',
+                                               justifyContent: 'center',
+                                               cursor: 'pointer',
+                                               boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                             }}
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               setPortfolioData(prev => ({ ...prev, avatarUrl: '' }));
+                                             }}
+                                           >
+                                             <Trash2 size={12} />
+                                           </button>
+                                         </div>
+                                       ) : (
+                                         <>
+                                           <UploadCloud size={32} color="var(--primary)" />
+                                           <div style={{ fontSize: '0.85rem', color: '#666', fontWeight: 500 }}>
+                                             Drag & drop image here, or <span style={{ color: 'var(--primary)', textDecoration: 'underline' }}>browse</span>
+                                           </div>
+                                           <div style={{ fontSize: '0.72rem', color: '#999' }}>
+                                             Supports JPG, JPEG, PNG (max 2MB)
+                                           </div>
+                                         </>
+                                       )}
+                                     </div>
+                                   </div>
                                   <div className="form-group">
                                     <label className="form-label">Professional Title</label>
                                     <input 
@@ -3463,18 +4073,45 @@ export default function App() {
                                         <div>
                                           <strong>{item.role}</strong> at {item.company} ({item.duration})
                                         </div>
-                                        <button 
-                                          style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}
-                                          onClick={() => handleDeleteExperience(item.id)}
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                          <button 
+                                            style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem' }}
+                                            onClick={() => {
+                                              setEditingExpId(item.id);
+                                              setNewExp({ company: item.company, role: item.role, duration: item.duration, description: item.description });
+                                              const parts = item.duration.split('-');
+                                              if (parts.length === 2) {
+                                                const startParts = parts[0].trim().split(' ');
+                                                const endParts = parts[1].trim().split(' ');
+                                                if (startParts.length === 2) {
+                                                  setExpStartMonth(startParts[0]);
+                                                  setExpStartYear(startParts[1]);
+                                                }
+                                                if (parts[1].trim().toLowerCase() === 'present') {
+                                                  setExpIsCurrent(true);
+                                                } else if (endParts.length === 2) {
+                                                  setExpIsCurrent(false);
+                                                  setExpEndMonth(endParts[0]);
+                                                  setExpEndYear(endParts[1]);
+                                                }
+                                              }
+                                            }}
+                                          >
+                                            Edit
+                                          </button>
+                                          <button 
+                                            style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}
+                                            onClick={() => handleDeleteExperience(item.id)}
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </div>
                                       </div>
                                     ))
                                   )}
 
                                   <div style={{ background: '#FFF', border: '1px solid #DDD', padding: '16px', borderRadius: '8px', marginTop: '16px' }}>
-                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '12px' }}>Add Experience Role</h4>
+                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '12px' }}>{editingExpId ? 'Edit Experience Role' : 'Add Experience Role'}</h4>
                                     <div className="grid-2">
                                       <div className="form-group">
                                         <label className="form-label">Company</label>
@@ -3485,15 +4122,63 @@ export default function App() {
                                         <input type="text" className="form-input" value={newExp.role} onChange={(e) => setNewExp({ ...newExp, role: e.target.value })} />
                                       </div>
                                     </div>
-                                    <div className="form-group">
-                                      <label className="form-label">Duration</label>
-                                      <input type="text" className="form-input" placeholder="e.g. Nov 2025 - Feb 2026" value={newExp.duration} onChange={(e) => setNewExp({ ...newExp, duration: e.target.value })} />
+                                    <div className="grid-2">
+                                      <div className="form-group">
+                                        <label className="form-label">Start Date</label>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                          <select className="form-select" value={expStartMonth} onChange={(e) => setExpStartMonth(e.target.value)}>
+                                            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                                              <option key={m} value={m}>{m}</option>
+                                            ))}
+                                          </select>
+                                          <select className="form-select" value={expStartYear} onChange={(e) => setExpStartYear(e.target.value)}>
+                                            {Array.from({ length: 50 }, (_, i) => String(new Date().getFullYear() - i)).map(y => (
+                                              <option key={y} value={y}>{y}</option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      </div>
+                                      <div className="form-group">
+                                        <label className="form-label">End Date</label>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                          {!expIsCurrent && (
+                                            <>
+                                              <select className="form-select" value={expEndMonth} onChange={(e) => setExpEndMonth(e.target.value)}>
+                                                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                                                  <option key={m} value={m}>{m}</option>
+                                                ))}
+                                              </select>
+                                              <select className="form-select" value={expEndYear} onChange={(e) => setExpEndYear(e.target.value)}>
+                                                {Array.from({ length: 50 }, (_, i) => String(new Date().getFullYear() - i)).map(y => (
+                                                  <option key={y} value={y}>{y}</option>
+                                                ))}
+                                              </select>
+                                            </>
+                                          )}
+                                          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                            <input type="checkbox" checked={expIsCurrent} onChange={(e) => setExpIsCurrent(e.target.checked)} />
+                                            Present
+                                          </label>
+                                        </div>
+                                      </div>
                                     </div>
-                                    <div className="form-group">
+                                    <div className="form-group" style={{ marginTop: '12px' }}>
                                       <label className="form-label">Description</label>
                                       <textarea className="form-textarea" value={newExp.description} onChange={(e) => setNewExp({ ...newExp, description: e.target.value })} />
                                     </div>
-                                    <button className="btn btn-secondary btn-sm" onClick={handleAddExperience}>Add Role</button>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                      <button className="btn btn-secondary btn-sm" onClick={handleAddExperience}>
+                                        {editingExpId ? 'Update Role' : 'Add Role'}
+                                      </button>
+                                      {editingExpId && (
+                                        <button className="btn btn-ghost btn-sm" onClick={() => {
+                                          setEditingExpId(null);
+                                          setNewExp({ company: '', role: '', duration: '', description: '' });
+                                        }}>
+                                          Cancel
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 </>
                               )}
@@ -3527,18 +4212,45 @@ export default function App() {
                                         <div>
                                           <strong>{item.degree}</strong> at {item.institution} ({item.duration})
                                         </div>
-                                        <button 
-                                          style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}
-                                          onClick={() => handleDeleteEducation(item.id)}
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                          <button 
+                                            style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem' }}
+                                            onClick={() => {
+                                              setEditingEduId(item.id);
+                                              setNewEdu({ institution: item.institution, degree: item.degree, duration: item.duration, description: item.description });
+                                              const parts = item.duration.split('-');
+                                              if (parts.length === 2) {
+                                                const startParts = parts[0].trim().split(' ');
+                                                const endParts = parts[1].trim().split(' ');
+                                                if (startParts.length === 2) {
+                                                  setEduStartMonth(startParts[0]);
+                                                  setEduStartYear(startParts[1]);
+                                                }
+                                                if (parts[1].trim().toLowerCase() === 'present') {
+                                                  setEduIsCurrent(true);
+                                                } else if (endParts.length === 2) {
+                                                  setEduIsCurrent(false);
+                                                  setEduEndMonth(endParts[0]);
+                                                  setEduEndYear(endParts[1]);
+                                                }
+                                              }
+                                            }}
+                                          >
+                                            Edit
+                                          </button>
+                                          <button 
+                                            style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}
+                                            onClick={() => handleDeleteEducation(item.id)}
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </div>
                                       </div>
                                     ))
                                   )}
 
                                   <div style={{ background: '#FFF', border: '1px solid #DDD', padding: '16px', borderRadius: '8px', marginTop: '16px' }}>
-                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '12px' }}>Add Education</h4>
+                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '12px' }}>{editingEduId ? 'Edit Education' : 'Add Education'}</h4>
                                     <div className="grid-2">
                                       <div className="form-group">
                                         <label className="form-label">Institution</label>
@@ -3549,15 +4261,63 @@ export default function App() {
                                         <input type="text" className="form-input" value={newEdu.degree} onChange={(e) => setNewEdu({ ...newEdu, degree: e.target.value })} />
                                       </div>
                                     </div>
-                                    <div className="form-group">
-                                      <label className="form-label">Duration</label>
-                                      <input type="text" className="form-input" placeholder="e.g. 2021 - 2024" value={newEdu.duration} onChange={(e) => setNewEdu({ ...newEdu, duration: e.target.value })} />
+                                    <div className="grid-2">
+                                      <div className="form-group">
+                                        <label className="form-label">Start Date</label>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                          <select className="form-select" value={eduStartMonth} onChange={(e) => setEduStartMonth(e.target.value)}>
+                                            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                                              <option key={m} value={m}>{m}</option>
+                                            ))}
+                                          </select>
+                                          <select className="form-select" value={eduStartYear} onChange={(e) => setEduStartYear(e.target.value)}>
+                                            {Array.from({ length: 50 }, (_, i) => String(new Date().getFullYear() - i)).map(y => (
+                                              <option key={y} value={y}>{y}</option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      </div>
+                                      <div className="form-group">
+                                        <label className="form-label">Graduation Date</label>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                          {!eduIsCurrent && (
+                                            <>
+                                              <select className="form-select" value={eduEndMonth} onChange={(e) => setEduEndMonth(e.target.value)}>
+                                                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                                                  <option key={m} value={m}>{m}</option>
+                                                ))}
+                                              </select>
+                                              <select className="form-select" value={eduEndYear} onChange={(e) => setEduEndYear(e.target.value)}>
+                                                {Array.from({ length: 50 }, (_, i) => String(new Date().getFullYear() - i)).map(y => (
+                                                  <option key={y} value={y}>{y}</option>
+                                                ))}
+                                              </select>
+                                            </>
+                                          )}
+                                          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                            <input type="checkbox" checked={eduIsCurrent} onChange={(e) => setEduIsCurrent(e.target.checked)} />
+                                            Present
+                                          </label>
+                                        </div>
+                                      </div>
                                     </div>
-                                    <div className="form-group">
+                                    <div className="form-group" style={{ marginTop: '12px' }}>
                                       <label className="form-label">Description (Optional)</label>
                                       <textarea className="form-textarea" value={newEdu.description} onChange={(e) => setNewEdu({ ...newEdu, description: e.target.value })} />
                                     </div>
-                                    <button className="btn btn-secondary btn-sm" onClick={handleAddEducation}>Add Education</button>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                      <button className="btn btn-secondary btn-sm" onClick={handleAddEducation}>
+                                        {editingEduId ? 'Update Education' : 'Add Education'}
+                                      </button>
+                                      {editingEduId && (
+                                        <button className="btn btn-ghost btn-sm" onClick={() => {
+                                          setEditingEduId(null);
+                                          setNewEdu({ institution: '', degree: '', duration: '', description: '' });
+                                        }}>
+                                          Cancel
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 </>
                               )}
@@ -3591,18 +4351,29 @@ export default function App() {
                                         <div>
                                           <strong>{item.name}</strong>
                                         </div>
-                                        <button 
-                                          style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}
-                                          onClick={() => handleDeleteProject(item.id)}
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                          <button 
+                                            style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem' }}
+                                            onClick={() => {
+                                              setEditingProjId(item.id);
+                                              setNewProj({ name: item.name, description: item.description, technologies: item.technologies, githubUrl: item.githubUrl, liveUrl: item.liveUrl });
+                                            }}
+                                          >
+                                            Edit
+                                          </button>
+                                          <button 
+                                            style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}
+                                            onClick={() => handleDeleteProject(item.id)}
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </div>
                                       </div>
                                     ))
                                   )}
 
                                   <div style={{ background: '#FFF', border: '1px solid #DDD', padding: '16px', borderRadius: '8px', marginTop: '16px' }}>
-                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '12px' }}>Add Project Block</h4>
+                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '12px' }}>{editingProjId ? 'Edit Project Block' : 'Add Project Block'}</h4>
                                     
                                     {/* AI Writer Assistant */}
                                     <div style={{ background: 'rgba(154, 177, 122, 0.08)', padding: '14px', borderRadius: '6px', marginBottom: '16px', border: '1px solid rgba(154, 177, 122, 0.2)' }}>
@@ -3662,7 +4433,19 @@ export default function App() {
                                       <label className="form-label">Technologies (comma separated)</label>
                                       <input type="text" className="form-input" placeholder="React, TypeScript, CSS" value={newProj.technologies} onChange={(e) => setNewProj({ ...newProj, technologies: e.target.value })} />
                                     </div>
-                                    <button className="btn btn-secondary btn-sm" onClick={handleAddProject}>Add Project</button>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                      <button className="btn btn-secondary btn-sm" onClick={handleAddProject}>
+                                        {editingProjId ? 'Update Project' : 'Add Project'}
+                                      </button>
+                                      {editingProjId && (
+                                        <button className="btn btn-ghost btn-sm" onClick={() => {
+                                          setEditingProjId(null);
+                                          setNewProj({ name: '', description: '', technologies: '', githubUrl: '', liveUrl: '' });
+                                        }}>
+                                          Cancel
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 </>
                               )}
@@ -3713,20 +4496,31 @@ export default function App() {
                                 portfolioData.certifications.map((item) => (
                                   <div key={item.id} className="list-item-card" style={{ display: 'flex', justifyContent: 'space-between', background: '#F8FAFC', padding: '12px', border: '1px solid #E2E8F0', borderRadius: '6px', marginBottom: '8px' }}>
                                     <div>
-                                      <strong>{item.name}</strong> - {item.issuer}
+                                      <strong>{item.name}</strong> - {item.issuer} ({item.date})
                                     </div>
-                                    <button 
-                                      style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}
-                                      onClick={() => handleDeleteCertification(item.id)}
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                      <button 
+                                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem' }}
+                                        onClick={() => {
+                                          setEditingCertId(item.id);
+                                          setNewCert({ name: item.name, issuer: item.issuer, date: item.date });
+                                        }}
+                                      >
+                                        Edit
+                                      </button>
+                                      <button 
+                                        style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}
+                                        onClick={() => handleDeleteCertification(item.id)}
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </div>
                                   </div>
                                 ))
                               )}
 
                               <div style={{ background: '#FFF', border: '1px solid #DDD', padding: '16px', borderRadius: '8px', marginTop: '16px' }}>
-                                <h4 style={{ fontSize: '0.9rem', marginBottom: '12px' }}>Add Certification</h4>
+                                <h4 style={{ fontSize: '0.9rem', marginBottom: '12px' }}>{editingCertId ? 'Edit Certification' : 'Add Certification'}</h4>
                                 <div className="form-group">
                                   <label className="form-label">Name</label>
                                   <input type="text" className="form-input" value={newCert.name} onChange={(e) => setNewCert({ ...newCert, name: e.target.value })} />
@@ -3741,7 +4535,19 @@ export default function App() {
                                     <input type="text" className="form-input" placeholder="e.g. Dec 2025" value={newCert.date} onChange={(e) => setNewCert({ ...newCert, date: e.target.value })} />
                                   </div>
                                 </div>
-                                <button className="btn btn-secondary btn-sm" onClick={handleAddCertification}>Add Certification</button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button className="btn btn-secondary btn-sm" onClick={handleAddCertification}>
+                                    {editingCertId ? 'Update Certification' : 'Add Certification'}
+                                  </button>
+                                  {editingCertId && (
+                                    <button className="btn btn-ghost btn-sm" onClick={() => {
+                                      setEditingCertId(null);
+                                      setNewCert({ name: '', issuer: '', date: '' });
+                                    }}>
+                                      Cancel
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           )}
@@ -3781,19 +4587,92 @@ export default function App() {
                                   />
                                 </div>
                               </div>
+                              <div className="grid-2">
+                                <div className="form-group">
+                                  <label className="form-label">Website URL</label>
+                                  <input 
+                                    type="text" 
+                                    className="form-input" 
+                                    placeholder="https://yourwebsite.com"
+                                    value={portfolioData.contact.website || ''} 
+                                    onChange={(e) => setPortfolioData({
+                                      ...portfolioData,
+                                      contact: { ...portfolioData.contact, website: e.target.value }
+                                    })} 
+                                  />
+                                </div>
+                                <div className="form-group">
+                                  <label className="form-label">LinkedIn Profile URL</label>
+                                  <input 
+                                    type="text" 
+                                    className="form-input" 
+                                    placeholder="https://linkedin.com/in/username"
+                                    value={portfolioData.contact.linkedin || ''} 
+                                    onChange={(e) => setPortfolioData({
+                                      ...portfolioData,
+                                      contact: { ...portfolioData.contact, linkedin: e.target.value }
+                                    })} 
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid-2">
+                                <div className="form-group">
+                                  <label className="form-label">GitHub Profile URL</label>
+                                  <input 
+                                    type="text" 
+                                    className="form-input" 
+                                    placeholder="https://github.com/username"
+                                    value={portfolioData.contact.github || ''} 
+                                    onChange={(e) => setPortfolioData({
+                                      ...portfolioData,
+                                      contact: { ...portfolioData.contact, github: e.target.value }
+                                    })} 
+                                  />
+                                </div>
+                                <div className="form-group">
+                                  <label className="form-label">Behance Profile URL</label>
+                                  <input 
+                                    type="text" 
+                                    className="form-input" 
+                                    placeholder="https://behance.net/username"
+                                    value={portfolioData.contact.behance || ''} 
+                                    onChange={(e) => setPortfolioData({
+                                      ...portfolioData,
+                                      contact: { ...portfolioData.contact, behance: e.target.value }
+                                    })} 
+                                  />
+                                </div>
+                              </div>
                               <button className="btn btn-primary btn-sm" onClick={handleSaveProfileSettings}>Save Contact Info</button>
                             </div>
                           )}
                         </div>
                       </div>
+                      )}
 
                       {/* Right Viewport Preview */}
                       <div className="preview-column">
                         <div className="preview-controls">
-                          <div className="viewport-btns">
-                            <button className={`viewport-btn ${viewportMode === 'desktop' ? 'active' : ''}`} onClick={() => setViewportMode('desktop')}><Monitor size={16} /></button>
-                            <button className={`viewport-btn ${viewportMode === 'tablet' ? 'active' : ''}`} onClick={() => setViewportMode('tablet')}><Tablet size={16} /></button>
-                            <button className={`viewport-btn ${viewportMode === 'mobile' ? 'active' : ''}`} onClick={() => setViewportMode('mobile')}><Smartphone size={16} /></button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="viewport-btns">
+                              <button className={`viewport-btn ${viewportMode === 'desktop' ? 'active' : ''}`} onClick={() => setViewportMode('desktop')} title="Desktop View"><Monitor size={16} /></button>
+                              <button className={`viewport-btn ${viewportMode === 'tablet' ? 'active' : ''}`} onClick={() => setViewportMode('tablet')} title="Tablet View"><Tablet size={16} /></button>
+                              <button className={`viewport-btn ${viewportMode === 'mobile' ? 'active' : ''}`} onClick={() => setViewportMode('mobile')} title="Mobile View"><Smartphone size={16} /></button>
+                            </div>
+                            
+                            <button 
+                              className={`btn ${isPreviewExpanded ? 'btn-secondary' : 'btn-primary'} btn-sm`}
+                              onClick={() => {
+                                setIsPreviewExpanded(!isPreviewExpanded);
+                                if (!isPreviewExpanded) {
+                                  setViewportMode('desktop');
+                                }
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0, padding: '6px 12px' }}
+                            >
+                              <Layout size={14} />
+                              {isPreviewExpanded ? 'Show Editor' : 'Full Page View'}
+                            </button>
                           </div>
                           
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
