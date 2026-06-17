@@ -436,11 +436,13 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
                 fontSize: '0.85rem', 
                 fontWeight: 500, 
                 padding: '6px 12px',
-                borderRadius: '20px',
-                border: '1px solid rgba(0,0,0,0.06)',
-                background: 'rgba(255,255,255,0.6)',
+                borderRadius: activeTheme === 'creative' ? '4px' : '20px',
+                border: activeTheme === 'creative' ? '2px solid #3C2F2F' : activeTheme === 'modern' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.06)',
+                background: activeTheme === 'creative' ? '#FFF' : activeTheme === 'modern' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)',
+                color: activeTheme === 'creative' ? '#3C2F2F' : activeTheme === 'modern' ? '#FFF' : '#333',
                 textDecoration: 'none', 
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                boxShadow: activeTheme === 'creative' ? '2px 2px 0px #3C2F2F' : 'none'
               }}
             >
               <SocialIcon type={l.name} size={14} />
@@ -462,12 +464,13 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
             key={i} 
             style={{ 
               padding: '6px 12px', 
-              background: themeType === 'modern' ? 'rgba(255,255,255,0.05)' : 'var(--primary-light)',
-              color: themeType === 'modern' ? '#FFF' : indConfig.accentColor,
-              border: '1px solid rgba(0,0,0,0.02)',
-              borderRadius: '20px', 
+              background: themeType === 'modern' ? 'rgba(255,255,255,0.05)' : themeType === 'creative' ? '#FFF' : 'var(--primary-light)',
+              color: themeType === 'modern' ? '#FFF' : themeType === 'creative' ? '#3C2F2F' : indConfig.accentColor,
+              border: themeType === 'creative' ? '2px solid #3C2F2F' : '1px solid rgba(0,0,0,0.02)',
+              borderRadius: themeType === 'creative' ? '4px' : '20px', 
               fontSize: '0.85rem', 
-              fontWeight: 500 
+              fontWeight: 500,
+              boxShadow: themeType === 'creative' ? '2px 2px 0px #3C2F2F' : 'none'
             }}
           >
             {s}
@@ -481,25 +484,25 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
     if (!experience || experience.length === 0) return null;
 
     return (
-      <div style={{ position: 'relative', paddingLeft: '24px', borderLeft: `2px solid ${themeType === 'modern' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`, margin: '20px 0 10px 8px' }}>
+      <div style={{ position: 'relative', paddingLeft: '24px', borderLeft: `2px solid ${themeType === 'modern' ? 'rgba(255,255,255,0.1)' : themeType === 'creative' ? '#3C2F2F' : 'rgba(0,0,0,0.08)'}`, margin: '20px 0 10px 8px' }}>
         {experience.map((exp) => (
           <div key={exp.id} style={{ marginBottom: '30px', position: 'relative' }}>
             <div style={{
               position: 'absolute',
-              left: '-31px',
+              left: themeType === 'creative' ? '-32px' : '-31px',
               top: '4px',
               width: '12px',
               height: '12px',
-              borderRadius: '50%',
-              background: themeType === 'modern' ? '#34D399' : indConfig.accentColor,
-              border: `3px solid ${themeType === 'modern' ? '#111827' : '#FFF'}`
+              borderRadius: themeType === 'creative' ? '0%' : '50%',
+              background: themeType === 'modern' ? '#34D399' : themeType === 'creative' ? '#C85A17' : indConfig.accentColor,
+              border: themeType === 'creative' ? '2px solid #3C2F2F' : `3px solid ${themeType === 'modern' ? '#111827' : '#FFF'}`
             }}></div>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', alignItems: 'baseline' }}>
               <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: themeType === 'modern' ? '#FFF' : '#1A1A1A' }}>
-                {exp.role} <span style={{ fontWeight: 400, color: '#888', fontSize: '0.9rem' }}>at {exp.company}</span>
+                {exp.role} <span style={{ fontWeight: 400, color: themeType === 'modern' ? '#9CA3AF' : '#555', fontSize: '0.9rem' }}>at {exp.company}</span>
               </h4>
-              <span style={{ fontSize: '0.8rem', color: '#888' }}>
+              <span style={{ fontSize: '0.8rem', color: themeType === 'modern' ? '#9CA3AF' : '#888' }}>
                 {(() => {
                   const parts = exp.duration.split('-');
                   const durStr = parts.length === 2 ? calculateDurationString(parts[0], parts[1]) : '';
@@ -737,10 +740,20 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
           <div style={{ textAlign: portfolioData.avatarUrl ? 'left' : 'center', flex: 1 }}>
             <h1 style={{ color: '#FFF', fontSize: '2.5rem', fontWeight: 800, margin: 0 }}>{portfolioData.name || 'Your Name'}</h1>
             <p style={{ color: '#90CDF4', fontSize: '1.2rem', margin: '8px 0 0 0', fontWeight: 500 }}>{portfolioData.title}</p>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center', marginTop: '16px', fontSize: '0.85rem', color: '#E2E8F0' }}>
-              {portfolioData.location && <span>{portfolioData.location}</span>}
-              {portfolioData.university && <span>• {portfolioData.university}</span>}
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center', marginTop: '16px', fontSize: '0.85rem', color: '#E2E8F0', alignItems: 'center' }}>
+              {portfolioData.location && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <MapPin size={13} /> {portfolioData.location}
+                </span>
+              )}
+              {portfolioData.location && portfolioData.university && <span>•</span>}
+              {portfolioData.university && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <BookOpen size={13} /> {portfolioData.university}
+                </span>
+              )}
             </div>
+            {renderSocials(portfolioData.contact, '', { marginTop: '16px', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center' })}
           </div>
         </div>
 
@@ -804,6 +817,21 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
               </div>
             </div>
           )}
+
+          {portfolioData.certifications && portfolioData.certifications.length > 0 && (
+            <div id="certifications" style={{ marginBottom: '32px' }}>
+              <h3 style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', color: '#1A365D', fontWeight: 700 }}>Certifications</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginTop: '16px' }}>
+                {portfolioData.certifications.map(cert => (
+                  <div key={cert.id} style={{ border: '1px solid #E2E8F0', padding: '16px', borderRadius: '6px', background: '#F8FAFC' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#2C5282' }}>{cert.name}</h4>
+                    <div style={{ fontSize: '0.82rem', color: '#4A5568', marginTop: '4px' }}>{cert.issuer}</div>
+                    <div style={{ fontSize: '0.78rem', color: '#718096', marginTop: '2px' }}>Issued: {cert.date}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -828,6 +856,21 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
             </div>
             <h1 style={{ fontSize: '3rem', fontWeight: 900, color: '#FFF', margin: 0 }}>{portfolioData.name || 'Your Name'}</h1>
             <p style={{ fontSize: '1.25rem', color: '#9CA3AF', marginTop: '8px' }}>{portfolioData.title}</p>
+            
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center', fontSize: '0.85rem', color: '#9CA3AF', marginTop: '12px' }}>
+              {portfolioData.location && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <MapPin size={12} color="#34D399" /> {portfolioData.location}
+                </span>
+              )}
+              {portfolioData.location && portfolioData.university && <span>•</span>}
+              {portfolioData.university && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <BookOpen size={12} color="#34D399" /> {portfolioData.university}
+                </span>
+              )}
+            </div>
+
             {renderSocials(portfolioData.contact, '', { marginTop: '20px', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center' })}
           </div>
         </div>
@@ -873,6 +916,39 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
             {renderExperienceList(portfolioData.experience, 'modern')}
           </div>
         )}
+
+        {portfolioData.education && portfolioData.education.length > 0 && (
+          <div id="education" style={{ marginBottom: '40px' }}>
+            <h3 style={{ color: '#FFF', fontSize: '1.3rem', fontWeight: 700, marginBottom: '20px' }}>Education</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {portfolioData.education.map(edu => (
+                <div key={edu.id} style={{ background: '#1F2937', border: '1px solid #374151', borderRadius: '12px', padding: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFF' }}>{edu.degree}</h4>
+                    <span style={{ fontSize: '0.85rem', color: '#9CA3AF' }}>{edu.duration}</span>
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#34D399', margin: '4px 0' }}>{edu.institution}</div>
+                  {edu.description && <p style={{ fontSize: '0.85rem', color: '#9CA3AF', lineHeight: 1.5 }}>{edu.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {portfolioData.certifications && portfolioData.certifications.length > 0 && (
+          <div id="certifications" style={{ marginBottom: '40px' }}>
+            <h3 style={{ color: '#FFF', fontSize: '1.3rem', fontWeight: 700, marginBottom: '20px' }}>Certifications</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+              {portfolioData.certifications.map(cert => (
+                <div key={cert.id} style={{ background: '#1F2937', border: '1px solid #374151', padding: '16px', borderRadius: '12px' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#FFF' }}>{cert.name}</h4>
+                  <div style={{ fontSize: '0.82rem', color: '#34D399', marginTop: '4px' }}>{cert.issuer}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#9CA3AF', marginTop: '2px' }}>Issued: {cert.date}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -893,6 +969,21 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
           <div style={{ flex: 1, textAlign: portfolioData.avatarUrl ? 'left' : 'center' }}>
             <h1 style={{ fontSize: '3.5rem', fontWeight: 900, color: '#C85A17', letterSpacing: '-0.02em', margin: 0 }}>{portfolioData.name || 'Your Name'}</h1>
             <p style={{ fontSize: '1.3rem', fontWeight: 700, color: '#D97706', marginTop: '12px' }}>{portfolioData.title}</p>
+            
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center', fontSize: '0.9rem', color: '#6B5B5B', marginTop: '12px' }}>
+              {portfolioData.location && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <MapPin size={13} color="#D97706" /> {portfolioData.location}
+                </span>
+              )}
+              {portfolioData.location && portfolioData.university && <span>•</span>}
+              {portfolioData.university && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <BookOpen size={13} color="#D97706" /> {portfolioData.university}
+                </span>
+              )}
+            </div>
+
             {renderSocials(portfolioData.contact, 'creative-btn', { marginTop: '20px', justifyContent: portfolioData.avatarUrl ? 'flex-start' : 'center' })}
           </div>
         </div>
@@ -918,7 +1009,7 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
             <h2 className="section-title">Selected Works</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
               {portfolioData.projects.map(proj => (
-                <div key={proj.id} className="creative-card">
+                <div key={proj.id} className="creative-card" style={{ background: '#FFF' }}>
                   <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#C85A17' }}>{proj.name}</h3>
                   <p style={{ fontSize: '0.95rem', margin: '12px 0', lineHeight: 1.6 }}>{proj.description}</p>
                   {proj.technologies && <div style={{ fontSize: '0.78rem', color: '#D97706', fontWeight: 600 }}>Built with: {proj.technologies}</div>}
@@ -926,6 +1017,46 @@ const PortfolioRenderer: React.FC<PortfolioRendererProps> = ({ portfolioData, ac
                     {proj.githubUrl && <a href={formatExternalUrl(proj.githubUrl)} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#3C2F2F', textDecoration: 'underline' }}>Source Code</a>}
                     {proj.liveUrl && <a href={formatExternalUrl(proj.liveUrl)} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#3C2F2F', textDecoration: 'underline' }}>Live Project</a>}
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {portfolioData.experience && portfolioData.experience.length > 0 && (
+          <div id="experience" style={{ marginBottom: '40px' }}>
+            <h2 className="section-title">Professional Journey</h2>
+            {renderExperienceList(portfolioData.experience, 'creative')}
+          </div>
+        )}
+
+        {portfolioData.education && portfolioData.education.length > 0 && (
+          <div id="education" style={{ marginBottom: '40px' }}>
+            <h2 className="section-title">Education background</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {portfolioData.education.map(edu => (
+                <div key={edu.id} className="creative-card" style={{ background: '#FFF' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#C85A17' }}>{edu.degree}</h4>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#D97706' }}>{edu.duration}</span>
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#3C2F2F', margin: '4px 0' }}>{edu.institution}</div>
+                  {edu.description && <p style={{ fontSize: '0.9rem', color: '#6B5B5B', lineHeight: 1.5 }}>{edu.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {portfolioData.certifications && portfolioData.certifications.length > 0 && (
+          <div id="certifications" style={{ marginBottom: '40px' }}>
+            <h2 className="section-title">Licenses & Certifications</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+              {portfolioData.certifications.map(cert => (
+                <div key={cert.id} className="creative-card" style={{ background: '#FFF', padding: '20px' }}>
+                  <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#C85A17' }}>{cert.name}</h4>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#3C2F2F', marginTop: '6px' }}>{cert.issuer}</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#D97706', marginTop: '4px' }}>Issued: {cert.date}</div>
                 </div>
               ))}
             </div>
