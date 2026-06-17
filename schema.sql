@@ -235,6 +235,35 @@ alter table public.audit_logs enable row level security;
 -- RLS POLICIES
 -- ====================================================================
 
+-- Drop existing policies to prevent "already exists" errors when re-running schema.sql
+drop policy if exists "Users can perform all operations on their own user row" on public.users;
+drop policy if exists "Users can perform CRUD on their own profile" on public.profiles;
+drop policy if exists "Anyone can select profiles if portfolio is public" on public.profiles;
+drop policy if exists "Users can perform CRUD on their own projects" on public.projects;
+drop policy if exists "Anyone can select projects if portfolio is public" on public.projects;
+drop policy if exists "Users can perform CRUD on their own experience" on public.experience;
+drop policy if exists "Anyone can select experience if portfolio is public" on public.experience;
+drop policy if exists "Users can perform CRUD on their own education" on public.education;
+drop policy if exists "Anyone can select education if portfolio is public" on public.education;
+drop policy if exists "Users can perform CRUD on their own skills" on public.skills;
+drop policy if exists "Anyone can select skills if portfolio is public" on public.skills;
+drop policy if exists "Users can perform CRUD on their own certifications" on public.certifications;
+drop policy if exists "Anyone can select certifications if portfolio is public" on public.certifications;
+drop policy if exists "Users can perform CRUD on their own achievements" on public.achievements;
+drop policy if exists "Anyone can select achievements if portfolio is public" on public.achievements;
+drop policy if exists "Users can perform CRUD on their own social links" on public.social_links;
+drop policy if exists "Anyone can select social links if portfolio is public" on public.social_links;
+drop policy if exists "Users can perform CRUD on their own portfolio settings" on public.portfolio_settings;
+drop policy if exists "Anyone can select portfolio settings if public" on public.portfolio_settings;
+drop policy if exists "Users can select their own subscriptions" on public.subscriptions;
+drop policy if exists "Users can update their own subscriptions" on public.subscriptions;
+drop policy if exists "Users can select their own payments" on public.payments;
+drop policy if exists "Users can select their own portfolio analytics" on public.analytics;
+drop policy if exists "Anyone can insert analytics rows (asynchronously)" on public.analytics;
+drop policy if exists "Users can perform CRUD on their own notifications" on public.notifications;
+drop policy if exists "Users can select their own audit logs" on public.audit_logs;
+drop policy if exists "Anyone can insert audit logs" on public.audit_logs;
+
 -- Users Policies
 create policy "Users can perform all operations on their own user row"
   on public.users for all using (auth.uid() = id);
