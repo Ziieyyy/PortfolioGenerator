@@ -407,3 +407,63 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- ====================================================================
+-- 15. STORAGE BUCKETS SETUP
+-- ====================================================================
+-- Enable storage if not already enabled, and create buckets
+insert into storage.buckets (id, name, public)
+values ('public-portfolio', 'public-portfolio', true)
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('private-portfolio', 'private-portfolio', false)
+on conflict (id) do nothing;
+
+-- Enable RLS on storage.objects
+alter table storage.objects enable row level security;
+
+-- Drop existing policies if they exist to avoid conflict
+drop policy if exists "Public Access to public-portfolio" on storage.objects;
+drop policy if exists "Authenticated Users Can Insert to public-portfolio" on storage.objects;
+drop policy if exists "Users Can Update Own public-portfolio Objects" on storage.objects;
+drop policy if exists "Users Can Delete Own public-portfolio Objects" on storage.objects;
+
+drop policy if exists "Authenticated Users Can Select from private-portfolio" on storage.objects;
+drop policy if exists "Authenticated Users Can Insert to private-portfolio" on storage.objects;
+drop policy if exists "Users Can Update Own private-portfolio Objects" on storage.objects;
+drop policy if exists "Users Can Delete Own private-portfolio Objects" on storage.objects;
+
+-- Create policies for public-portfolio
+create policy "Public Access to public-portfolio"
+  on storage.objects for select
+  using (bucket_id = 'public-portfolio');
+
+create policy "Authenticated Users Can Insert to public-portfolio"
+  on storage.objects for insert
+  with check (bucket_id = 'public-portfolio' and auth.role() = 'authenticated');
+
+create policy "Users Can Update Own public-portfolio Objects"
+  on storage.objects for update
+  using (bucket_id = 'public-portfolio' and auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "Users Can Delete Own public-portfolio Objects"
+  on storage.objects for delete
+  using (bucket_id = 'public-portfolio' and auth.uid()::text = (storage.foldername(name))[1]);
+
+-- Create policies for private-portfolio
+create policy "Authenticated Users Can Select from private-portfolio"
+  on storage.objects for select
+  using (bucket_id = 'private-portfolio' and auth.role() = 'authenticated');
+
+create policy "Authenticated Users Can Insert to private-portfolio"
+  on storage.objects for insert
+  with check (bucket_id = 'private-portfolio' and auth.role() = 'authenticated');
+
+create policy "Users Can Update Own private-portfolio Objects"
+  on storage.objects for update
+  using (bucket_id = 'private-portfolio' and auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "Users Can Delete Own private-portfolio Objects"
+  on storage.objects for delete
+  using (bucket_id = 'private-portfolio' and auth.uid()::text = (storage.foldername(name))[1]);

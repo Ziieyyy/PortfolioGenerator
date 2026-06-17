@@ -1966,6 +1966,8 @@ export default function App() {
     setUploadProgress(0)
     setUploadError('')
 
+    const originalAvatarUrl = portfolioData.avatarUrl;
+
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) {
       setUploadingFileType(null);
@@ -1991,6 +1993,9 @@ export default function App() {
       if (!allowed.includes(file.type)) {
         setUploadError('Only JPEG/PNG images are allowed.')
         setUploadingFileType(null)
+        if (type === 'avatar') {
+          setPortfolioData(prev => ({ ...prev, avatarUrl: originalAvatarUrl }));
+        }
         showAlert('Invalid type: JPEG or PNG required.', 'info')
         return
       }
@@ -1998,6 +2003,9 @@ export default function App() {
       if (file.size > limit * 1024 * 1024) {
         setUploadError(`File size exceeds ${limit}MB.`)
         setUploadingFileType(null)
+        if (type === 'avatar') {
+          setPortfolioData(prev => ({ ...prev, avatarUrl: originalAvatarUrl }));
+        }
         showAlert(`File exceeds ${limit}MB limit.`, 'info')
         return
       }
@@ -2005,6 +2013,17 @@ export default function App() {
 
     try {
       const bucketName = (type === 'avatar' || type === 'project') ? 'public-portfolio' : 'private-portfolio';
+      
+      // Auto-create bucket if missing (fails safely if bucket already exists or lack permissions)
+      try {
+        await supabase.storage.createBucket(bucketName, {
+          public: bucketName === 'public-portfolio',
+          fileSizeLimit: 5 * 1024 * 1024
+        });
+      } catch (e) {
+        // Ignore bucket creation issues
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${type}_${Date.now()}.${fileExt}`;
 
@@ -2053,6 +2072,9 @@ export default function App() {
 
     } catch (err: any) {
       console.error(err);
+      if (type === 'avatar') {
+        setPortfolioData(prev => ({ ...prev, avatarUrl: originalAvatarUrl }));
+      }
       setUploadError(err.message || 'Upload failed');
       setUploadingFileType(null);
       showAlert('Upload failed: ' + (err.message || ''), 'info');
@@ -2905,9 +2927,12 @@ export default function App() {
     const user = (await supabase.auth.getUser()).data.user;
     if (user) {
       if (portfolioData.avatarUrl && portfolioData.avatarUrl.trim() !== '') {
-        const imgRegex = /\.(jpeg|jpg|gif|png|webp|svg|bmp)(\?.*)?$/i;
-        if (!imgRegex.test(portfolioData.avatarUrl.trim())) {
-          return showAlert('Profile picture must be a valid image URL (ending with jpeg, jpg, png, webp, etc.)', 'info');
+        const urlTrimmed = portfolioData.avatarUrl.trim();
+        if (urlTrimmed.startsWith('data:image/')) {
+          return showAlert('Profile picture is still uploading or invalid. Please wait or try uploading again.', 'info');
+        }
+        if (!urlTrimmed.startsWith('http://') && !urlTrimmed.startsWith('https://')) {
+          return showAlert('Profile picture must be a valid image web URL.', 'info');
         }
       }
 
@@ -4113,10 +4138,15 @@ export default function App() {
                                                cursor: 'pointer',
                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                              }}
-                                             onClick={(e) => {
-                                               e.stopPropagation();
-                                               setPortfolioData(prev => ({ ...prev, avatarUrl: '' }));
-                                             }}
+                                             onClick={async (e) => {
+                                                e.stopPropagation();
+                                                setPortfolioData(prev => ({ ...prev, avatarUrl: '' }));
+                                                const user = (await supabase.auth.getUser()).data.user;
+                                                if (user) {
+                                                  await supabase.from('profiles').update({ profile_image_url: null }).eq('user_id', user.id);
+                                                  showAlert('Profile picture removed.', 'success');
+                                                }
+                                              }}
                                            >
                                              <Trash2 size={12} />
                                            </button>
@@ -4171,7 +4201,7 @@ export default function App() {
                                       onChange={(e) => setPortfolioData({ ...portfolioData, bio: e.target.value })} 
                                     />
                                   </div>
-                                  <button className="btn btn-primary btn-sm" onClick={handleSaveProfileSettings}>Save Profile</button>
+                                  <button className="btn btn-primary btn-sm" onClick={handleSaveProfileSettings} disabled={!!uploadingFileType}>{uploadingFileType ? "Uploading..." : "Save Profile"}</button>
                                 </>
                               )}
                             </div>
@@ -4967,7 +4997,7 @@ export default function App() {
                               <label className="form-label">Professional Role</label>
                               <input type="text" className="form-input" value={portfolioData.title} onChange={(e) => setPortfolioData({ ...portfolioData, title: e.target.value })} />
                             </div>
-                            <button className="btn btn-primary btn-sm" onClick={handleSaveProfileSettings}>Save Profile Settings</button>
+                            <button className="btn btn-primary btn-sm" onClick={handleSaveProfileSettings} disabled={!!uploadingFileType}>{uploadingFileType ? "Uploading..." : "Save Profile Settings"}</button>
                           </div>
                         )}
 
