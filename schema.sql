@@ -449,8 +449,6 @@ insert into storage.buckets (id, name, public)
 values ('private-portfolio', 'private-portfolio', false)
 on conflict (id) do nothing;
 
--- Enable RLS on storage.objects
-alter table storage.objects enable row level security;
 
 -- Drop existing policies if they exist to avoid conflict
 drop policy if exists "Public Access to public-portfolio" on storage.objects;
