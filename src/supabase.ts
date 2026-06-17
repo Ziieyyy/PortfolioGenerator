@@ -1,13 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Public Supabase configuration fallbacks for static hosting/publishing
+const DEFAULT_URL = 'https://skgevucorcopouwjcwio.supabase.co';
+const DEFAULT_KEY = 'sb_publishable_hzwqEyMnW58DwEd7cguOjg_nSNI271W';
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn("Supabase credentials missing! Database operations will fail unless env variables are configured.");
-}
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || DEFAULT_KEY;
 
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder-url.supabase.co',
-  supabaseKey || 'placeholder-anon-key'
-);
+export const supabase = createClient(supabaseUrl, supabaseKey);
